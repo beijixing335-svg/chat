@@ -1,15 +1,15 @@
 {
-  "name": "字卡聊天",
-  "short_name": "字卡",
+  "name": "Shanks＆HS",
+  "short_name": "Shanks",
   "display": "standalone",
   "start_url": "./index.html",
-  "background_color": "#8BAAC4",
+  "background_color": "#FADADD",
   "theme_color": "#8BAAC4",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%238BAAC4'/%3E%3Ctext x='256' y='340' text-anchor='middle' font-size='280' fill='white' font-family='sans-serif' font-weight='bold'%3E%E8%81%8A%3C/text%3E%3C/svg%3E",
-      "sizes": "512x512",
-      "type": "image/svg+xml"
+      "src": "icon.png",
+      "sizes": "1200x1200",
+      "type": "image/png"
     }
   ]
 }
