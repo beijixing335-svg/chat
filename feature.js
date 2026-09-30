@@ -1,3 +1,29 @@
+// ====== 注册 Service Worker ======
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(function(reg) {
+    console.log('✅ Service Worker 已注册');
+  }).catch(function(err) {
+    console.log('SW 注册失败：', err);
+  });
+}
+
+// ====== 弹通知函数 ======
+function showNotify(title, body) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+    navigator.serviceWorker.ready.then(function(reg) {
+      reg.showNotification(title, {
+        body: body,
+        icon: 'icon.png',
+        badge: 'icon.png'
+      });
+    });
+  } else {
+    try { new Notification(title, { body: body }); } catch(e) {}
+  }
+}
+
 window.addEventListener('load', function() {
   setTimeout(function() {
     // 1. 注入 CSS 样式
@@ -114,37 +140,21 @@ window.addEventListener('load', function() {
       .qta-btn-send:active { opacity: 0.8; }
 
       .custom-plus-item {
-        padding: 10px 20px;
-        font-size: 14px;
-        color: #333;
-        cursor: pointer;
-        border: none;
-        background: transparent;
-        width: 100%;
-        text-align: left;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+        padding: 10px 20px; font-size: 14px; color: #333;
+        cursor: pointer; border: none; background: transparent;
+        width: 100%; text-align: left;
+        display: flex; align-items: center; gap: 10px;
       }
       .custom-plus-item:active { background: #f0f0f0; }
 
       .setting-cg-entry {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 10px 0;
-        border-bottom: 1px solid #f0f0f0;
-        font-size: 14px;
-        color: #333;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 0; border-bottom: 1px solid #f0f0f0;
+        font-size: 14px; color: #333;
       }
       .setting-cg-entry .btn {
-        padding: 6px 14px;
-        border: none;
-        border-radius: 8px;
-        background: #000;
-        color: #fff;
-        font-size: 13px;
-        cursor: pointer;
+        padding: 6px 14px; border: none; border-radius: 8px;
+        background: #000; color: #fff; font-size: 13px; cursor: pointer;
       }
 
       #cg-overlay {
@@ -592,7 +602,9 @@ window.addEventListener('load', function() {
     hookSettingsPanel();
 
   }, 1000);
-});// ====== 隐藏旧设置项，加自定义 CSS 输入框 ======
+});
+
+// ====== 隐藏旧设置项，加自定义 CSS 输入框 ======
 (function() {
   var timer = setInterval(function() {
     var panel = document.querySelector('.settings-panel');
@@ -605,7 +617,6 @@ window.addEventListener('load', function() {
       return;
     }
 
-    // 隐藏「界面主题」「气泡样式」「气泡颜色」
     groups.forEach(function(g) {
       var label = g.querySelector('.setting-group-label');
       if (!label) return;
@@ -617,7 +628,6 @@ window.addEventListener('load', function() {
       }
     });
 
-    // 找「聊天字体」分组，在它后面插自定义样式区
     var anchorGroup = null;
     groups.forEach(function(g) {
       var label = g.querySelector('.setting-group-label');
@@ -674,7 +684,9 @@ window.addEventListener('load', function() {
 
     clearInterval(timer);
   }, 800);
-})();// ====== 主动发消息 + 弹通知 ======
+})();
+
+// ====== 主动发消息 + 弹通知 ======
 (function() {
   var timer = setInterval(function() {
     var panel = document.querySelector('.settings-panel');
@@ -722,6 +734,9 @@ window.addEventListener('load', function() {
         <input type="checkbox" id="notify-toggle" style="width:20px;height:20px;accent-color:#000;">
       </div>
       <div style="font-size:11px;color:#999;">开启后，对方发消息时弹出系统通知</div>
+      <div style="margin-top:10px;">
+        <button id="test-notify-btn" style="width:100%;padding:10px;border:none;border-radius:10px;background:#000;color:#fff;font-size:14px;cursor:pointer;">🔔 测试通知</button>
+      </div>
     `;
     anchorGroup.parentNode.insertBefore(section, anchorGroup.nextSibling);
 
@@ -729,6 +744,7 @@ window.addEventListener('load', function() {
     var slider = document.getElementById('active-msg-interval');
     var valSpan = document.getElementById('active-msg-val');
     var notifyToggle = document.getElementById('notify-toggle');
+    var testBtn = document.getElementById('test-notify-btn');
 
     toggle.checked = window.data.activeMsgEnabled;
     var initMin = Math.round((window.data.activeMsgInterval || 300) / 60);
@@ -763,7 +779,7 @@ window.addEventListener('load', function() {
         }
         if (Notification.permission === 'granted') {
           window.data.notifyEnabled = true;
-          new Notification('🪽 通知已开启', { body: '之后对方发消息时会弹通知' });
+          showNotify('🪽 通知已开启', '之后对方发消息时会弹通知');
           save();
         } else if (Notification.permission === 'denied') {
           alert('通知权限被拒绝，请到浏览器设置里手动开启');
@@ -772,7 +788,7 @@ window.addEventListener('load', function() {
           Notification.requestPermission().then(function(p) {
             if (p === 'granted') {
               window.data.notifyEnabled = true;
-              new Notification('🪽 通知已开启', { body: '之后对方发消息时会弹通知' });
+              showNotify('🪽 通知已开启', '之后对方发消息时会弹通知');
             } else {
               self.checked = false;
               window.data.notifyEnabled = false;
@@ -783,6 +799,21 @@ window.addEventListener('load', function() {
       } else {
         window.data.notifyEnabled = false;
         save();
+      }
+    });
+
+    testBtn.addEventListener('click', function() {
+      if (!('Notification' in window)) { alert('此浏览器不支持通知'); return; }
+      if (Notification.permission !== 'granted') {
+        Notification.requestPermission().then(function(p) {
+          if (p === 'granted') {
+            showNotify('🪽 测试通知', '如果你看到这条，说明通知功能正常');
+          } else {
+            alert('你拒绝了通知权限');
+          }
+        });
+      } else {
+        showNotify('🪽 测试通知', '如果你看到这条，说明通知功能正常');
       }
     });
 
@@ -808,45 +839,9 @@ window.addEventListener('load', function() {
       var card = window.data.cards[Math.floor(Math.random() * window.data.cards.length)];
       addMessage(card, false, null, null);
 
-      // 弹通知
-      if (window.data.notifyEnabled && 'Notification' in window && Notification.permission === 'granted') {
-        try {
-          new Notification('🪽 ' + (window.data.otherName || 'TA'), {
-            body: card,
-            icon: 'icon.png'
-          });
-        } catch(e) {}
+      if (window.data.notifyEnabled) {
+        showNotify('🪽 ' + (window.data.otherName || 'TA'), card);
       }
     }
   }, 5000);
-})();// ====== 测试通知 ======
-setTimeout(function() {
-  var btn = document.createElement('button');
-  btn.innerText = '🔔 测试通知';
-  btn.style.cssText = 'position:fixed;top:80px;right:20px;z-index:99999;padding:8px 14px;background:#000;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;';
-  btn.onclick = function() {
-    if (!('Notification' in window)) {
-      alert('此浏览器不支持通知');
-      return;
-    }
-    if (Notification.permission === 'granted') {
-      try {
-        new Notification('🪽 测试', { body: '如果你看到这条通知，说明通知功能正常' });
-        alert('已发出通知，看看状态栏有没有弹');
-      } catch(e) {
-        alert('通知失败：' + e.message);
-      }
-    } else if (Notification.permission === 'denied') {
-      alert('权限被拒绝，请去浏览器/系统设置里手动开启');
-    } else {
-      Notification.requestPermission().then(function(p) {
-        if (p === 'granted') {
-          new Notification('🪽 测试', { body: '权限已允许，通知功能正常' });
-        } else {
-          alert('你拒绝了通知权限');
-        }
-      });
-    }
-  };
-  document.body.appendChild(btn);
-}, 2000);
+})();
