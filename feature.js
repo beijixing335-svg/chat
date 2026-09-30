@@ -323,7 +323,7 @@ window.addEventListener('load', function() {
     qtaOverlay.innerHTML = `
       <div class="qta-modal">
         <div class="qta-header">
-          <div class="qta-title">问问TA</div>
+          <div class="qta-title">问问Shanks</div>
           <div class="qta-close" id="qta-close">✕</div>
         </div>
         <input type="text" class="qta-input" id="qta-question" placeholder="你的问题？">
@@ -593,7 +593,7 @@ window.addEventListener('load', function() {
       const cardHtml = `
         <div class="qta-result-card">
           <div class="qta-card-title">问问TA · ${question}</div>
-          <div class="qta-card-answer-status"><span>✓</span> TA：${selectedOptions.join('、')}</div>
+          <div class="qta-card-answer-status"><span>✓</span> Shanks：${selectedOptions.join('、')}</div>
           <button class="qta-card-collect">♥ 收藏</button>
           <div class="qta-card-time">${new Date().toLocaleTimeString('zh-CN', { hour12: false })} 发送</div>
           <div class="qta-card-options">${optionsHtml}</div>
