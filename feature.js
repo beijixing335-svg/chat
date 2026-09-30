@@ -674,4 +674,149 @@ window.addEventListener('load', function() {
 
     clearInterval(timer);
   }, 800);
+})();// ====== 主动发消息 + 弹通知 ======
+(function() {
+  var timer = setInterval(function() {
+    var panel = document.querySelector('.settings-panel');
+    if (!panel) return;
+    var groups = panel.querySelectorAll('.setting-group');
+    if (groups.length === 0) return;
+    if (document.getElementById('active-msg-section')) {
+      clearInterval(timer);
+      return;
+    }
+
+    var anchorGroup = null;
+    groups.forEach(function(g) {
+      var label = g.querySelector('.setting-group-label');
+      if (label && (label.innerText || '').indexOf('表情包频率') !== -1) {
+        anchorGroup = g;
+      }
+    });
+    if (!anchorGroup) return;
+
+    if (!window.data) return;
+    if (typeof window.data.activeMsgEnabled === 'undefined') {
+      window.data.activeMsgEnabled = false;
+      window.data.activeMsgInterval = 300;
+      window.data.notifyEnabled = false;
+    }
+
+    var section = document.createElement('div');
+    section.className = 'setting-group';
+    section.id = 'active-msg-section';
+    section.innerHTML = `
+      <div class="setting-group-label">🪽 主动发消息</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;">
+        <label style="font-size:13px;color:#555;min-width:60px;">开关</label>
+        <input type="checkbox" id="active-msg-toggle" style="width:20px;height:20px;accent-color:#000;">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;">
+        <label style="font-size:13px;color:#555;min-width:60px;">间隔</label>
+        <input type="range" id="active-msg-interval" min="5" max="30" value="5" step="1" style="flex:1;">
+        <span id="active-msg-val" style="font-size:14px;font-weight:600;min-width:50px;text-align:center;">5分</span>
+      </div>
+      <div style="font-size:11px;color:#999;margin-top:2px;">开启后，每隔这个时间对方主动发一条消息（网页挂后台有效）</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0 4px 0;">
+        <label style="font-size:13px;color:#555;min-width:60px;">通知</label>
+        <input type="checkbox" id="notify-toggle" style="width:20px;height:20px;accent-color:#000;">
+      </div>
+      <div style="font-size:11px;color:#999;">开启后，对方发消息时弹出系统通知</div>
+    `;
+    anchorGroup.parentNode.insertBefore(section, anchorGroup.nextSibling);
+
+    var toggle = document.getElementById('active-msg-toggle');
+    var slider = document.getElementById('active-msg-interval');
+    var valSpan = document.getElementById('active-msg-val');
+    var notifyToggle = document.getElementById('notify-toggle');
+
+    toggle.checked = window.data.activeMsgEnabled;
+    var initMin = Math.round((window.data.activeMsgInterval || 300) / 60);
+    if (initMin < 5) initMin = 5;
+    if (initMin > 30) initMin = 30;
+    slider.value = initMin;
+    valSpan.innerText = initMin + '分';
+    notifyToggle.checked = window.data.notifyEnabled;
+
+    function save() {
+      if (typeof saveData === 'function') saveData();
+    }
+
+    toggle.addEventListener('change', function() {
+      window.data.activeMsgEnabled = this.checked;
+      save();
+    });
+    slider.addEventListener('input', function() {
+      var min = parseInt(this.value);
+      valSpan.innerText = min + '分';
+      window.data.activeMsgInterval = min * 60;
+      save();
+    });
+
+    notifyToggle.addEventListener('change', function() {
+      var self = this;
+      if (self.checked) {
+        if (!('Notification' in window)) {
+          alert('此浏览器不支持通知');
+          self.checked = false;
+          return;
+        }
+        if (Notification.permission === 'granted') {
+          window.data.notifyEnabled = true;
+          new Notification('🪽 通知已开启', { body: '之后对方发消息时会弹通知' });
+          save();
+        } else if (Notification.permission === 'denied') {
+          alert('通知权限被拒绝，请到浏览器设置里手动开启');
+          self.checked = false;
+        } else {
+          Notification.requestPermission().then(function(p) {
+            if (p === 'granted') {
+              window.data.notifyEnabled = true;
+              new Notification('🪽 通知已开启', { body: '之后对方发消息时会弹通知' });
+            } else {
+              self.checked = false;
+              window.data.notifyEnabled = false;
+            }
+            save();
+          });
+        }
+      } else {
+        window.data.notifyEnabled = false;
+        save();
+      }
+    });
+
+    clearInterval(timer);
+  }, 800);
+
+  // ===== 定时检查 =====
+  setInterval(function() {
+    if (!window.data || !window.data.activeMsgEnabled) return;
+    if (!window.data.cards || window.data.cards.length === 0) return;
+    if (typeof addMessage !== 'function') return;
+
+    var now = Date.now();
+    if (!window.data.lastActiveMsgTime) {
+      window.data.lastActiveMsgTime = now;
+      if (typeof saveData === 'function') saveData();
+      return;
+    }
+    var interval = (window.data.activeMsgInterval || 300) * 1000;
+    if (now - window.data.lastActiveMsgTime >= interval) {
+      window.data.lastActiveMsgTime = now;
+      if (typeof saveData === 'function') saveData();
+      var card = window.data.cards[Math.floor(Math.random() * window.data.cards.length)];
+      addMessage(card, false, null, null);
+
+      // 弹通知
+      if (window.data.notifyEnabled && 'Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification('🪽 ' + (window.data.otherName || 'TA'), {
+            body: card,
+            icon: 'icon.png'
+          });
+        } catch(e) {}
+      }
+    }
+  }, 5000);
 })();
