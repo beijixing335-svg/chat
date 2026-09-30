@@ -676,37 +676,37 @@ window.addEventListener('load', function() {
 });// ====== 自定义样式系统 ======
 (function() {
   var customStyleTimer = setInterval(function() {
-    // 等设置面板加载出来
     var panel = document.querySelector('.settings-panel');
     if (!panel) return;
     var groups = panel.querySelectorAll('.setting-group');
     if (groups.length === 0) return;
 
-    // 如果已经处理过，就不再重复
     if (document.getElementById('custom-css-section')) {
       clearInterval(customStyleTimer);
       return;
     }
 
-    // 1) 隐藏原来的「气泡样式」「气泡颜色」两个分组
+    // 1) 隐藏「界面主题」「气泡样式」「气泡颜色」
     groups.forEach(function(g) {
       var label = g.querySelector('.setting-group-label');
       if (!label) return;
       var txt = label.innerText || '';
-      if (txt.indexOf('气泡样式') !== -1 || txt.indexOf('气泡颜色') !== -1) {
+      if (txt.indexOf('界面主题') !== -1 ||
+          txt.indexOf('气泡样式') !== -1 ||
+          txt.indexOf('气泡颜色') !== -1) {
         g.style.display = 'none';
       }
     });
 
-    // 2) 找到「界面主题」分组，在它后面插入「自定义样式」区
-    var themeGroup = null;
+    // 2) 找到「聊天字体」分组，在它后面插入
+    var anchorGroup = null;
     groups.forEach(function(g) {
       var label = g.querySelector('.setting-group-label');
-      if (label && (label.innerText || '').indexOf('界面主题') !== -1) {
-        themeGroup = g;
+      if (label && (label.innerText || '').indexOf('聊天字体') !== -1) {
+        anchorGroup = g;
       }
     });
-    if (!themeGroup) return;
+    if (!anchorGroup) return;
 
     var section = document.createElement('div');
     section.className = 'setting-group';
@@ -720,14 +720,12 @@ window.addEventListener('load', function() {
         <button id="custom-css-reset" style="flex:1;padding:8px;border:none;border-radius:8px;background:#f0f0f0;color:#333;font-size:13px;cursor:pointer;">恢复默认</button>
       </div>
     `;
-    themeGroup.parentNode.insertBefore(section, themeGroup.nextSibling);
+    anchorGroup.parentNode.insertBefore(section, anchorGroup.nextSibling);
 
-    // 3) 注入样式容器
     var styleEl = document.createElement('style');
     styleEl.id = 'custom-css-style';
     document.head.appendChild(styleEl);
 
-    // 4) 应用/保存/恢复
     var input = document.getElementById('custom-css-input');
     var applyBtn = document.getElementById('custom-css-apply');
     var resetBtn = document.getElementById('custom-css-reset');
@@ -740,7 +738,6 @@ window.addEventListener('load', function() {
       }
     }
 
-    // 启动时读取已保存的
     if (data && data.customCSS) {
       input.value = data.customCSS;
       applyCustomCSS(data.customCSS);
