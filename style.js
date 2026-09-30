@@ -3,13 +3,13 @@ window.addEventListener('load', function() {
     var style = document.createElement('style');
     style.innerHTML = `
       /* 整体背景：粉白渐变 + 星光感 */
-      html, body {
-        background: linear-gradient(180deg, #FFF5F7 0%, #FCE4EC 40%, #F8D7E0 100%) !important;
-      }
-      #app {
-        background: linear-gradient(180deg, #FFF5F7 0%, #FCE4EC 40%, #F8D7E0 100%) !important;
-        background-attachment: fixed !important;
-      }
+      body:not(:has(#app.has-bg)) {
+  background: linear-gradient(180deg, #FFF5F7 0%, #FCE4EC 40%, #F8D7E0 100%) !important;
+}
+#app:not(.has-bg) {
+  background: linear-gradient(180deg, #FFF5F7 0%, #FCE4EC 40%, #F8D7E0 100%) !important;
+  background-attachment: fixed !important;
+}
 
       /* 星星点点 */
       #app::before {
