@@ -113,49 +113,6 @@ window.addEventListener('load', function() {
       .qta-btn-send { background: #000; color: #fff; }
       .qta-btn-send:active { opacity: 0.8; }
 
-      .qta-result-card {
-        background: #fff; border-radius: 16px;
-        padding: 16px; margin: 10px auto;
-        border: 1px solid #e0e0e0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        width: 90%; max-width: 320px;
-      }
-      .qta-card-title {
-        font-size: 16px; font-weight: 600; color: #000;
-        text-align: center; margin-bottom: 10px; line-height: 1.4;
-      }
-      .qta-card-answer-status {
-        font-size: 14px; color: #333;
-        text-align: center; margin-bottom: 5px;
-      }
-      .qta-card-answer-status span {
-        color: #4CAF50; margin-right: 4px; font-weight: bold;
-      }
-      .qta-card-collect {
-        display: block; background: #f5f5f5;
-        border-radius: 20px; padding: 4px 12px;
-        font-size: 12px; color: #666;
-        margin: 0 auto 10px auto;
-        cursor: pointer; border: none; text-align: center;
-      }
-      .qta-card-time {
-        font-size: 12px; color: #999;
-        text-align: center; margin-bottom: 15px;
-        padding-bottom: 15px; border-bottom: 1px dashed #e0e0e0;
-      }
-      .qta-card-options { display: flex; flex-direction: column; gap: 8px; }
-      .qta-card-option {
-        padding: 12px 15px; border-radius: 12px;
-        border: 1px solid #e0e0e0;
-        font-size: 14px; color: #333;
-        background: #fff; text-align: left;
-      }
-      .qta-card-option.selected {
-        border-color: #000; font-weight: 600;
-        box-shadow: 0 0 0 1px #000;
-      }
-
-      /* 自定义菜单项（插入到 + 号菜单里） */
       .custom-plus-item {
         padding: 10px 20px;
         font-size: 14px;
@@ -171,7 +128,6 @@ window.addEventListener('load', function() {
       }
       .custom-plus-item:active { background: #f0f0f0; }
 
-      /* 设置面板里的字卡分组按钮 */
       .setting-cg-entry {
         display: flex;
         align-items: center;
@@ -191,7 +147,6 @@ window.addEventListener('load', function() {
         cursor: pointer;
       }
 
-      /* 字卡分组弹窗 */
       #cg-overlay {
         position: fixed; top: 0; left: 0; right: 0; bottom: 0;
         background: rgba(0,0,0,0.4);
@@ -481,7 +436,6 @@ window.addEventListener('load', function() {
       cardSelectOverlay.classList.add('active');
     }
 
-    // 弹窗控制
     document.getElementById('qta-close').addEventListener('click', () => qtaOverlay.classList.remove('active'));
     document.getElementById('qta-cancel').addEventListener('click', () => qtaOverlay.classList.remove('active'));
     qtaOverlay.addEventListener('click', (e) => { if (e.target === qtaOverlay) qtaOverlay.classList.remove('active'); });
@@ -554,6 +508,7 @@ window.addEventListener('load', function() {
       maxSelect++; document.getElementById('qta-max-val').innerText = maxSelect;
     });
 
+    // ===== 问卷发送 =====
     document.getElementById('qta-send').addEventListener('click', () => {
       const questionInput = document.getElementById('qta-question').value.trim() || '（空问题）';
       const optionsInput = document.getElementById('qta-options-input').value.trim();
@@ -575,56 +530,28 @@ window.addEventListener('load', function() {
         setTimeout(() => enqueueReply('（未设置选项）', thinkTime, null), 0);
       } else if (currentMode === 'single') {
         selectedOptions = [options[Math.floor(Math.random() * options.length)]];
-        setTimeout(() => insertQuestionnaireCard(questionInput, selectedOptions, options), thinkTime * 1000);
+        setTimeout(() => {
+          addMessage('📋 问问Shanks · ' + questionInput + '\nShanks：' + selectedOptions.join('、'), false, null, null);
+        }, thinkTime * 1000);
       } else if (currentMode === 'multiple') {
         const shuffled = [...options].sort(() => 0.5 - Math.random());
         const count = Math.min(Math.floor(Math.random() * maxSelect) + 1, options.length);
         selectedOptions = shuffled.slice(0, count);
-        setTimeout(() => insertQuestionnaireCard(questionInput, selectedOptions, options), thinkTime * 1000);
+        setTimeout(() => {
+          addMessage('📋 问问Shanks · ' + questionInput + '\nShanks：' + selectedOptions.join('、'), false, null, null);
+        }, thinkTime * 1000);
       }
     });
 
-    function insertQuestionnaireCard(question, selectedOptions, allOptions) {
-      let optionsHtml = '';
-      allOptions.forEach(opt => {
-        const isSelected = selectedOptions.includes(opt);
-        optionsHtml += `<div class="qta-card-option ${isSelected ? 'selected' : ''}">${opt}</div>`;
-      });
-      const cardHtml = `
-        <div class="qta-result-card">
-          <div class="qta-card-title">问问TA · ${question}</div>
-          <div class="qta-card-answer-status"><span>✓</span> Shanks：${selectedOptions.join('、')}</div>
-          <button class="qta-card-collect">♥ 收藏</button>
-          <div class="qta-card-time">${new Date().toLocaleTimeString('zh-CN', { hour12: false })} 发送</div>
-          <div class="qta-card-options">${optionsHtml}</div>
-        </div>
-      `;
-      const msgContainer = document.getElementById('msgList');
-      if (msgContainer) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'msg-item';
-        wrapper.style.justifyContent = 'center';
-        wrapper.innerHTML = cardHtml;
-        msgContainer.appendChild(wrapper);
-        msgContainer.scrollTop = msgContainer.scrollHeight;
-        wrapper.querySelector('.qta-card-collect').addEventListener('click', function() {
-          this.innerHTML = '♥ 已收藏'; this.style.color = '#000';
-        });
-      }
-    }
-
-    // ===== 关键：把按钮挂到原界面里 =====
-
-    // 1) 把「问问TA」挂到 + 号菜单
+    // ===== 把按钮挂到原界面 =====
     function hookPlusMenu() {
       var plusMenu = document.getElementById('plusMenu');
       if (!plusMenu) { setTimeout(hookPlusMenu, 500); return; }
-      // 检查是否已经加过，避免重复
       if (document.getElementById('custom-qta-item')) return;
       var item = document.createElement('button');
       item.className = 'custom-plus-item menu-item';
       item.id = 'custom-qta-item';
-      item.innerHTML =  '🍶 问问Shanks';
+      item.innerHTML = '🍶 问问Shanks';
       item.addEventListener('click', function() {
         plusMenu.classList.remove('active');
         qtaOverlay.classList.add('active');
@@ -632,14 +559,10 @@ window.addEventListener('load', function() {
       plusMenu.appendChild(item);
     }
 
-    // 2) 把「字卡分组」挂到设置里的「字卡管理」区域
     function hookSettingsPanel() {
-      // 找设置面板里的「字卡管理」标题
       var panel = document.querySelector('.settings-panel');
       if (!panel) { setTimeout(hookSettingsPanel, 500); return; }
       if (document.getElementById('setting-cg-entry')) return;
-
-      // 找到「📚 字卡管理」那块 setting-group
       var groups = panel.querySelectorAll('.setting-group');
       var targetGroup = null;
       groups.forEach(function(g) {
@@ -648,9 +571,7 @@ window.addEventListener('load', function() {
           targetGroup = g;
         }
       });
-
       if (!targetGroup) { setTimeout(hookSettingsPanel, 500); return; }
-
       var entry = document.createElement('div');
       entry.className = 'setting-cg-entry';
       entry.id = 'setting-cg-entry';
@@ -659,8 +580,6 @@ window.addEventListener('load', function() {
         renderGroupList();
         cgOverlay.classList.add('active');
       });
-
-      // 插到「字卡管理」标题的下面
       var label = targetGroup.querySelector('.setting-group-label');
       if (label && label.nextSibling) {
         targetGroup.insertBefore(entry, label.nextSibling);
@@ -673,86 +592,4 @@ window.addEventListener('load', function() {
     hookSettingsPanel();
 
   }, 1000);
-});// ====== 自定义样式系统 ======
-(function() {
-  var customStyleTimer = setInterval(function() {
-    var panel = document.querySelector('.settings-panel');
-    if (!panel) return;
-    var groups = panel.querySelectorAll('.setting-group');
-    if (groups.length === 0) return;
-
-    if (document.getElementById('custom-css-section')) {
-      clearInterval(customStyleTimer);
-      return;
-    }
-
-    // 1) 隐藏「界面主题」「气泡样式」「气泡颜色」
-    groups.forEach(function(g) {
-      var label = g.querySelector('.setting-group-label');
-      if (!label) return;
-      var txt = label.innerText || '';
-      if (txt.indexOf('界面主题') !== -1 ||
-          txt.indexOf('气泡样式') !== -1 ||
-          txt.indexOf('气泡颜色') !== -1) {
-        g.style.display = 'none';
-      }
-    });
-
-    // 2) 找到「聊天字体」分组，在它后面插入
-    var anchorGroup = null;
-    groups.forEach(function(g) {
-      var label = g.querySelector('.setting-group-label');
-      if (label && (label.innerText || '').indexOf('聊天字体') !== -1) {
-        anchorGroup = g;
-      }
-    });
-    if (!anchorGroup) return;
-
-    var section = document.createElement('div');
-    section.className = 'setting-group';
-    section.id = 'custom-css-section';
-    section.innerHTML = `
-      <div class="setting-group-label">🎨 自定义气泡样式</div>
-      <div style="font-size:12px;color:#999;margin-bottom:6px;">粘贴 CSS 代码，点应用即可生效</div>
-      <textarea id="custom-css-input" style="width:100%;height:120px;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;resize:vertical;outline:none;font-family:monospace;box-sizing:border-box;" placeholder="在这里粘贴 CSS 代码..."></textarea>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button id="custom-css-apply" style="flex:1;padding:8px;border:none;border-radius:8px;background:#000;color:#fff;font-size:13px;cursor:pointer;">应用</button>
-        <button id="custom-css-reset" style="flex:1;padding:8px;border:none;border-radius:8px;background:#f0f0f0;color:#333;font-size:13px;cursor:pointer;">恢复默认</button>
-      </div>
-    `;
-    anchorGroup.parentNode.insertBefore(section, anchorGroup.nextSibling);
-
-    var styleEl = document.createElement('style');
-    styleEl.id = 'custom-css-style';
-    document.head.appendChild(styleEl);
-
-    var input = document.getElementById('custom-css-input');
-    var applyBtn = document.getElementById('custom-css-apply');
-    var resetBtn = document.getElementById('custom-css-reset');
-
-    function applyCustomCSS(css) {
-      document.getElementById('custom-css-style').innerHTML = css || '';
-      if (data) {
-        data.customCSS = css || '';
-        if (typeof saveData === 'function') saveData();
-      }
-    }
-
-    if (data && data.customCSS) {
-      input.value = data.customCSS;
-      applyCustomCSS(data.customCSS);
-    }
-
-    applyBtn.addEventListener('click', function() {
-      applyCustomCSS(input.value);
-      alert('已应用');
-    });
-    resetBtn.addEventListener('click', function() {
-      input.value = '';
-      applyCustomCSS('');
-      alert('已恢复');
-    });
-
-    clearInterval(customStyleTimer);
-  }, 800);
-})();
+});
