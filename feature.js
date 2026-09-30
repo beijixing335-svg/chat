@@ -819,4 +819,34 @@ window.addEventListener('load', function() {
       }
     }
   }, 5000);
-})();
+})();// ====== 测试通知 ======
+setTimeout(function() {
+  var btn = document.createElement('button');
+  btn.innerText = '🔔 测试通知';
+  btn.style.cssText = 'position:fixed;top:80px;right:20px;z-index:99999;padding:8px 14px;background:#000;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;';
+  btn.onclick = function() {
+    if (!('Notification' in window)) {
+      alert('此浏览器不支持通知');
+      return;
+    }
+    if (Notification.permission === 'granted') {
+      try {
+        new Notification('🪽 测试', { body: '如果你看到这条通知，说明通知功能正常' });
+        alert('已发出通知，看看状态栏有没有弹');
+      } catch(e) {
+        alert('通知失败：' + e.message);
+      }
+    } else if (Notification.permission === 'denied') {
+      alert('权限被拒绝，请去浏览器/系统设置里手动开启');
+    } else {
+      Notification.requestPermission().then(function(p) {
+        if (p === 'granted') {
+          new Notification('🪽 测试', { body: '权限已允许，通知功能正常' });
+        } else {
+          alert('你拒绝了通知权限');
+        }
+      });
+    }
+  };
+  document.body.appendChild(btn);
+}, 2000);
