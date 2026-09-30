@@ -624,7 +624,7 @@ window.addEventListener('load', function() {
       var item = document.createElement('button');
       item.className = 'custom-plus-item menu-item';
       item.id = 'custom-qta-item';
-      item.innerHTML = '❓ 问问TA';
+      item.innerHTML =  '🍶 问问Shanks';
       item.addEventListener('click', function() {
         plusMenu.classList.remove('active');
         qtaOverlay.classList.add('active');
