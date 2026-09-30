@@ -3,18 +3,8 @@ window.addEventListener('load', function() {
     // 1. 注入 CSS 样式
     const style = document.createElement('style');
     style.innerHTML = `
-      #qta-float-btn {
-        position: fixed; bottom: 80px; right: 20px;
-        width: 50px; height: 50px;
-        background: #000; color: #fff;
-        border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 20px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        cursor: pointer; z-index: 9999;
-        user-select: none; transition: transform 0.2s;
-      }
-      #qta-float-btn:active { transform: scale(0.9); }
+      #qta-float-btn { display: none !important; }
+      #cg-float-btn { display: none !important; }
 
       .qta-overlay {
         position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -165,24 +155,48 @@ window.addEventListener('load', function() {
         box-shadow: 0 0 0 1px #000;
       }
 
-      #cg-float-btn {
-        position: fixed; bottom: 80px; left: 20px;
-        width: 50px; height: 50px;
-        background: #000; color: #fff;
-        border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 20px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        cursor: pointer; z-index: 9999;
-        user-select: none; transition: transform 0.2s;
+      /* 自定义菜单项（插入到 + 号菜单里） */
+      .custom-plus-item {
+        padding: 10px 20px;
+        font-size: 14px;
+        color: #333;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        width: 100%;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
-      #cg-float-btn:active { transform: scale(0.9); }
+      .custom-plus-item:active { background: #f0f0f0; }
 
+      /* 设置面板里的字卡分组按钮 */
+      .setting-cg-entry {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+        color: #333;
+      }
+      .setting-cg-entry .btn {
+        padding: 6px 14px;
+        border: none;
+        border-radius: 8px;
+        background: #000;
+        color: #fff;
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      /* 字卡分组弹窗 */
       #cg-overlay {
         position: fixed; top: 0; left: 0; right: 0; bottom: 0;
         background: rgba(0,0,0,0.4);
         display: none; align-items: center; justify-content: center;
-        z-index: 10000;
+        z-index: 10002;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       }
       #cg-overlay.active { display: flex; }
@@ -271,7 +285,7 @@ window.addEventListener('load', function() {
         position: fixed; top: 0; left: 0; right: 0; bottom: 0;
         background: rgba(0,0,0,0.5);
         display: none; align-items: center; justify-content: center;
-        z-index: 10001;
+        z-index: 10003;
       }
       #cg-card-select-overlay.active { display: flex; }
       .cg-card-select-modal {
@@ -302,82 +316,68 @@ window.addEventListener('load', function() {
     `;
     document.head.appendChild(style);
 
-    // 2. 注入 HTML 结构
-    const qtaFloatBtn = document.createElement('div');
-    qtaFloatBtn.id = 'qta-float-btn';
-    qtaFloatBtn.innerHTML = '?';
-
+    // 2. 弹窗 HTML
     const qtaOverlay = document.createElement('div');
     qtaOverlay.className = 'qta-overlay';
     qtaOverlay.id = 'qta-overlay';
-
-    const qtaModal = document.createElement('div');
-    qtaModal.className = 'qta-modal';
-    qtaModal.innerHTML = `
-      <div class="qta-header">
-        <div class="qta-title">问问TA</div>
-        <div class="qta-close" id="qta-close">✕</div>
-      </div>
-      <input type="text" class="qta-input" id="qta-question" placeholder="你的问题？">
-      <div class="qta-mode-group" id="qta-mode-group">
-        <button class="qta-mode-btn active" data-mode="single">单选题</button>
-        <button class="qta-mode-btn" data-mode="multiple">多选题</button>
-      </div>
-      <div id="qta-options-wrapper">
-        <textarea class="qta-textarea" id="qta-options-input" placeholder="请输入选项，每行一个"></textarea>
-        <div class="qta-clear-btn" id="qta-options-clear">✕</div>
-      </div>
-      <div class="qta-hint" id="qta-options-hint">单选题选项：每行一个</div>
-      <div class="qta-row">
-        <span class="qta-row-label">思考时间（秒）</span>
-        <div class="qta-stepper">
-          <button class="qta-stepper-btn" id="qta-time-minus">-</button>
-          <span class="qta-stepper-val" id="qta-time-val">8</span>
-          <button class="qta-stepper-btn" id="qta-time-plus">+</button>
+    qtaOverlay.innerHTML = `
+      <div class="qta-modal">
+        <div class="qta-header">
+          <div class="qta-title">问问TA</div>
+          <div class="qta-close" id="qta-close">✕</div>
         </div>
-      </div>
-      <div class="qta-row" id="qta-max-select-row" style="display: none;">
-        <span class="qta-row-label">最多选几个</span>
-        <div class="qta-stepper">
-          <button class="qta-stepper-btn" id="qta-max-minus">-</button>
-          <span class="qta-stepper-val" id="qta-max-val">3</span>
-          <button class="qta-stepper-btn" id="qta-max-plus">+</button>
+        <input type="text" class="qta-input" id="qta-question" placeholder="你的问题？">
+        <div class="qta-mode-group" id="qta-mode-group">
+          <button class="qta-mode-btn active" data-mode="single">单选题</button>
+          <button class="qta-mode-btn" data-mode="multiple">多选题</button>
         </div>
-      </div>
-      <div class="qta-bottom-row">
-        <button class="qta-btn qta-btn-cancel" id="qta-cancel">取消</button>
-        <button class="qta-btn qta-btn-send" id="qta-send">发送</button>
+        <div id="qta-options-wrapper">
+          <textarea class="qta-textarea" id="qta-options-input" placeholder="请输入选项，每行一个"></textarea>
+          <div class="qta-clear-btn" id="qta-options-clear">✕</div>
+        </div>
+        <div class="qta-hint" id="qta-options-hint">单选题选项：每行一个</div>
+        <div class="qta-row">
+          <span class="qta-row-label">思考时间（秒）</span>
+          <div class="qta-stepper">
+            <button class="qta-stepper-btn" id="qta-time-minus">-</button>
+            <span class="qta-stepper-val" id="qta-time-val">8</span>
+            <button class="qta-stepper-btn" id="qta-time-plus">+</button>
+          </div>
+        </div>
+        <div class="qta-row" id="qta-max-select-row" style="display: none;">
+          <span class="qta-row-label">最多选几个</span>
+          <div class="qta-stepper">
+            <button class="qta-stepper-btn" id="qta-max-minus">-</button>
+            <span class="qta-stepper-val" id="qta-max-val">3</span>
+            <button class="qta-stepper-btn" id="qta-max-plus">+</button>
+          </div>
+        </div>
+        <div class="qta-bottom-row">
+          <button class="qta-btn qta-btn-cancel" id="qta-cancel">取消</button>
+          <button class="qta-btn qta-btn-send" id="qta-send">发送</button>
+        </div>
       </div>
     `;
-    qtaOverlay.appendChild(qtaModal);
-    document.body.appendChild(qtaFloatBtn);
     document.body.appendChild(qtaOverlay);
-
-    const cgFloatBtn = document.createElement('div');
-    cgFloatBtn.id = 'cg-float-btn';
-    cgFloatBtn.innerHTML = '📁';
 
     const cgOverlay = document.createElement('div');
     cgOverlay.id = 'cg-overlay';
-
-    const cgModal = document.createElement('div');
-    cgModal.className = 'cg-modal';
-    cgModal.innerHTML = `
-      <div class="cg-header">
-        <div class="cg-title">字卡分组管理</div>
-        <div class="cg-close" id="cg-close">✕</div>
-      </div>
-      <div class="cg-group-list" id="cg-group-list"></div>
-      <div class="cg-bottom">
-        <div class="cg-new-group-row">
-          <input type="text" class="cg-input" id="cg-new-group-name" placeholder="新建分组名称...">
-          <button class="cg-btn cg-btn-black" id="cg-add-group-btn">新建</button>
+    cgOverlay.innerHTML = `
+      <div class="cg-modal">
+        <div class="cg-header">
+          <div class="cg-title">字卡分组管理</div>
+          <div class="cg-close" id="cg-close">✕</div>
         </div>
-        <button class="cg-btn cg-btn-gray" id="cg-save-btn">保存分组配置</button>
+        <div class="cg-group-list" id="cg-group-list"></div>
+        <div class="cg-bottom">
+          <div class="cg-new-group-row">
+            <input type="text" class="cg-input" id="cg-new-group-name" placeholder="新建分组名称...">
+            <button class="cg-btn cg-btn-black" id="cg-add-group-btn">新建</button>
+          </div>
+          <button class="cg-btn cg-btn-gray" id="cg-save-btn">保存分组配置</button>
+        </div>
       </div>
     `;
-    cgOverlay.appendChild(cgModal);
-    document.body.appendChild(cgFloatBtn);
     document.body.appendChild(cgOverlay);
 
     const cardSelectOverlay = document.createElement('div');
@@ -481,12 +481,11 @@ window.addEventListener('load', function() {
       cardSelectOverlay.classList.add('active');
     }
 
-    qtaFloatBtn.addEventListener('click', () => qtaOverlay.classList.add('active'));
+    // 弹窗控制
     document.getElementById('qta-close').addEventListener('click', () => qtaOverlay.classList.remove('active'));
     document.getElementById('qta-cancel').addEventListener('click', () => qtaOverlay.classList.remove('active'));
     qtaOverlay.addEventListener('click', (e) => { if (e.target === qtaOverlay) qtaOverlay.classList.remove('active'); });
 
-    cgFloatBtn.addEventListener('click', () => { renderGroupList(); cgOverlay.classList.add('active'); });
     document.getElementById('cg-close').addEventListener('click', () => cgOverlay.classList.remove('active'));
     cgOverlay.addEventListener('click', (e) => { if (e.target === cgOverlay) cgOverlay.classList.remove('active'); });
     document.getElementById('cg-select-close').addEventListener('click', () => cardSelectOverlay.classList.remove('active'));
@@ -613,6 +612,65 @@ window.addEventListener('load', function() {
         });
       }
     }
+
+    // ===== 关键：把按钮挂到原界面里 =====
+
+    // 1) 把「问问TA」挂到 + 号菜单
+    function hookPlusMenu() {
+      var plusMenu = document.getElementById('plusMenu');
+      if (!plusMenu) { setTimeout(hookPlusMenu, 500); return; }
+      // 检查是否已经加过，避免重复
+      if (document.getElementById('custom-qta-item')) return;
+      var item = document.createElement('button');
+      item.className = 'custom-plus-item menu-item';
+      item.id = 'custom-qta-item';
+      item.innerHTML = '❓ 问问TA';
+      item.addEventListener('click', function() {
+        plusMenu.classList.remove('active');
+        qtaOverlay.classList.add('active');
+      });
+      plusMenu.appendChild(item);
+    }
+
+    // 2) 把「字卡分组」挂到设置里的「字卡管理」区域
+    function hookSettingsPanel() {
+      // 找设置面板里的「字卡管理」标题
+      var panel = document.querySelector('.settings-panel');
+      if (!panel) { setTimeout(hookSettingsPanel, 500); return; }
+      if (document.getElementById('setting-cg-entry')) return;
+
+      // 找到「📚 字卡管理」那块 setting-group
+      var groups = panel.querySelectorAll('.setting-group');
+      var targetGroup = null;
+      groups.forEach(function(g) {
+        var label = g.querySelector('.setting-group-label');
+        if (label && label.innerText.indexOf('字卡管理') !== -1) {
+          targetGroup = g;
+        }
+      });
+
+      if (!targetGroup) { setTimeout(hookSettingsPanel, 500); return; }
+
+      var entry = document.createElement('div');
+      entry.className = 'setting-cg-entry';
+      entry.id = 'setting-cg-entry';
+      entry.innerHTML = '<span>📁 字卡分组管理</span><button class="btn">打开</button>';
+      entry.querySelector('.btn').addEventListener('click', function() {
+        renderGroupList();
+        cgOverlay.classList.add('active');
+      });
+
+      // 插到「字卡管理」标题的下面
+      var label = targetGroup.querySelector('.setting-group-label');
+      if (label && label.nextSibling) {
+        targetGroup.insertBefore(entry, label.nextSibling);
+      } else {
+        targetGroup.appendChild(entry);
+      }
+    }
+
+    hookPlusMenu();
+    hookSettingsPanel();
 
   }, 1000);
 });
