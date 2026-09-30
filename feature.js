@@ -673,4 +673,89 @@ window.addEventListener('load', function() {
     hookSettingsPanel();
 
   }, 1000);
-});
+});// ====== 自定义样式系统 ======
+(function() {
+  var customStyleTimer = setInterval(function() {
+    // 等设置面板加载出来
+    var panel = document.querySelector('.settings-panel');
+    if (!panel) return;
+    var groups = panel.querySelectorAll('.setting-group');
+    if (groups.length === 0) return;
+
+    // 如果已经处理过，就不再重复
+    if (document.getElementById('custom-css-section')) {
+      clearInterval(customStyleTimer);
+      return;
+    }
+
+    // 1) 隐藏原来的「气泡样式」「气泡颜色」两个分组
+    groups.forEach(function(g) {
+      var label = g.querySelector('.setting-group-label');
+      if (!label) return;
+      var txt = label.innerText || '';
+      if (txt.indexOf('气泡样式') !== -1 || txt.indexOf('气泡颜色') !== -1) {
+        g.style.display = 'none';
+      }
+    });
+
+    // 2) 找到「界面主题」分组，在它后面插入「自定义样式」区
+    var themeGroup = null;
+    groups.forEach(function(g) {
+      var label = g.querySelector('.setting-group-label');
+      if (label && (label.innerText || '').indexOf('界面主题') !== -1) {
+        themeGroup = g;
+      }
+    });
+    if (!themeGroup) return;
+
+    var section = document.createElement('div');
+    section.className = 'setting-group';
+    section.id = 'custom-css-section';
+    section.innerHTML = `
+      <div class="setting-group-label">🎨 自定义气泡样式</div>
+      <div style="font-size:12px;color:#999;margin-bottom:6px;">粘贴 CSS 代码，点应用即可生效</div>
+      <textarea id="custom-css-input" style="width:100%;height:120px;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;resize:vertical;outline:none;font-family:monospace;box-sizing:border-box;" placeholder="在这里粘贴 CSS 代码..."></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button id="custom-css-apply" style="flex:1;padding:8px;border:none;border-radius:8px;background:#000;color:#fff;font-size:13px;cursor:pointer;">应用</button>
+        <button id="custom-css-reset" style="flex:1;padding:8px;border:none;border-radius:8px;background:#f0f0f0;color:#333;font-size:13px;cursor:pointer;">恢复默认</button>
+      </div>
+    `;
+    themeGroup.parentNode.insertBefore(section, themeGroup.nextSibling);
+
+    // 3) 注入样式容器
+    var styleEl = document.createElement('style');
+    styleEl.id = 'custom-css-style';
+    document.head.appendChild(styleEl);
+
+    // 4) 应用/保存/恢复
+    var input = document.getElementById('custom-css-input');
+    var applyBtn = document.getElementById('custom-css-apply');
+    var resetBtn = document.getElementById('custom-css-reset');
+
+    function applyCustomCSS(css) {
+      document.getElementById('custom-css-style').innerHTML = css || '';
+      if (data) {
+        data.customCSS = css || '';
+        if (typeof saveData === 'function') saveData();
+      }
+    }
+
+    // 启动时读取已保存的
+    if (data && data.customCSS) {
+      input.value = data.customCSS;
+      applyCustomCSS(data.customCSS);
+    }
+
+    applyBtn.addEventListener('click', function() {
+      applyCustomCSS(input.value);
+      alert('已应用');
+    });
+    resetBtn.addEventListener('click', function() {
+      input.value = '';
+      applyCustomCSS('');
+      alert('已恢复');
+    });
+
+    clearInterval(customStyleTimer);
+  }, 800);
+})();
