@@ -844,21 +844,21 @@ window.addEventListener('load', function() {
       }
     }
   }, 5000);
-})();// ====== 🍽 相册上传功能（最终版） ======
+})();// ====== 🍽 相册上传功能（真正终极版） ======
 (function() {
-  // 1. 注入样式，确保图片完美显示，不会被拉伸或变模糊
+  // 1. 注入样式
   var style = document.createElement('style');
   style.innerHTML = `
-    .msg-item .bubble img.emoji-img {
+    .msg-item .bubble img.my-photo-img {
       max-width: 160px !important;
       max-height: 200px !important;
       border-radius: 8px !important;
       object-fit: cover !important;
+      display: block !important;
     }
   `;
   document.head.appendChild(style);
 
-  // 2. 将“相册”按钮插入左下角加号菜单
   var timer = setInterval(function() {
     var plusMenu = document.getElementById('plusMenu');
     if (!plusMenu) return;
@@ -867,32 +867,30 @@ window.addEventListener('load', function() {
       return;
     }
 
-    // 创建相册按钮
+    // 2. 加号菜单加按钮
     var item = document.createElement('button');
     item.className = 'custom-plus-item menu-item';
     item.id = 'custom-photo-item';
     item.innerHTML = '🍽 相册';
-    plusMenu.insertBefore(item, plusMenu.firstChild); // 放在最上面
+    plusMenu.insertBefore(item, plusMenu.firstChild);
 
-    // 创建隐藏的选图输入框
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
     fileInput.style.display = 'none';
     document.body.appendChild(fileInput);
 
-    // 点击相册按钮，呼出系统相册
+    // 3. 点击选图
     item.addEventListener('click', function() {
-      plusMenu.classList.remove('active'); // 关闭菜单
-      fileInput.click(); // 打开相册
+      plusMenu.classList.remove('active');
+      fileInput.click();
     });
 
-    // 处理选中的图片
+    // 4. 选图后强制处理
     fileInput.addEventListener('change', function(e) {
       var file = e.target.files[0];
       if (!file) return;
-      
-      // 限制图片大小 5MB
+
       if (file.size > 5 * 1024 * 1024) {
         alert('图片太大了，请选择 5MB 以下的图片哦~');
         return;
@@ -902,19 +900,76 @@ window.addEventListener('load', function() {
       reader.onload = function(ev) {
         var base64Img = ev.target.result;
         
-        // 【核心】调用你原版 HTML 里的发图函数，原版会完美处理存储和渲染！
-        if (typeof sendSticker === 'function') {
-          sendSticker(base64Img);
-        } else {
-          alert('发图失败，原版函数丢失');
+        // 强行定义为我们自己认识的图片类型
+        var msgObj = {
+          type: 'my_photo', 
+          src: base64Img, 
+          self: true,
+          time: new Date().toLocaleTimeString('zh-CN', { hour12: false }).substring(0, 5)
+        };
+        
+        // 存进数据
+        if (window.data && window.data.messages) {
+          window.data.messages.push(msgObj);
+          if (typeof saveData === 'function') saveData();
+        }
+
+        // 我们自己手动把它画出来
+        if (typeof renderMessages === 'function') {
+          renderMessages();
+        }
+
+        // 触发对方回复
+        if (typeof getRandomDelay === 'function' && typeof enqueueReply === 'function') {
+          var delay = getRandomDelay();
+          var card = (window.data.cards && window.data.cards.length > 0) 
+            ? window.data.cards[Math.floor(Math.random() * window.data.cards.length)] 
+            : '收到你的照片啦~';
+          enqueueReply(card, delay);
         }
       };
       reader.readAsDataURL(file);
-      fileInput.value = ''; // 清空，方便下次选同一张图
+      fileInput.value = '';
     });
 
     clearInterval(timer);
   }, 800);
+
+  // ==========================================
+  // 【终极强制接管】重写原版的渲染逻辑
+  // 拦截原版的 renderMessages，让它能认出我们的图片
+  // ==========================================
+  var originalRender = window.renderMessages;
+  if (originalRender) {
+    window.renderMessages = function() {
+      // 先让原版渲染一次
+      originalRender.apply(this, arguments);
+
+      // 然后我们去消息列表里找，把画错的文字替换成图片
+      var msgList = document.getElementById('msgList');
+      if (!msgList || !window.data || !window.data.messages) return;
+      
+      var items = msgList.querySelectorAll('.msg-item');
+      items.forEach(function(el, idx) {
+        var msg = window.data.messages[idx];
+        if (msg && msg.type === 'my_photo') {
+          var bubble = el.querySelector('.bubble');
+          if (bubble) {
+            // 清空气泡里乱七八糟的文字
+            bubble.innerHTML = '';
+            bubble.style.background = window.data.myBubbleColor || '#D9A0A0';
+            
+            // 塞进图片
+            var img = document.createElement('img');
+            img.className = 'my-photo-img';
+            img.src = msg.src;
+            bubble.appendChild(img);
+          }
+        }
+      });
+    };
+  }
+})();
 })();// ====== 修复加号菜单太长滑动问题 ======
 (function() {
   var style = document.createElement('style');
