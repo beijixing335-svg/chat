@@ -963,13 +963,13 @@ window.addEventListener('load', function() {
 (function() {
   var style = document.createElement('style');
   style.innerHTML = `
-    /* 限制加号菜单最高高度，并允许上下滑动 */
+    /* 限制最高高度为 160px，大概显示3个，其他的滑动 */
     #plusMenu {
-      max-height: 60vh !important; 
+      max-height: 160px !important; 
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch !important;
     }
-    /* 隐藏难看的滚动条（保留滑动功能） */
+    /* 隐藏滚动条 */
     #plusMenu::-webkit-scrollbar {
       width: 0px !important;
       display: none !important;
