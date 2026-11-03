@@ -959,4 +959,21 @@ window.addEventListener('load', function() {
 
     clearInterval(timer);
   }, 800);
+})();// ====== 修复加号菜单太长滑动问题 ======
+(function() {
+  var style = document.createElement('style');
+  style.innerHTML = `
+    /* 限制加号菜单最高高度，并允许上下滑动 */
+    #plusMenu {
+      max-height: 60vh !important; 
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+    /* 隐藏难看的滚动条（保留滑动功能） */
+    #plusMenu::-webkit-scrollbar {
+      width: 0px !important;
+      display: none !important;
+    }
+  `;
+  document.head.appendChild(style);
 })();
