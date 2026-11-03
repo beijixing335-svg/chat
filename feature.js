@@ -1,4 +1,4 @@
-// ====== 注册 Service Worker ======
+// ====== 1. 注册 Service Worker ======
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').then(function(reg) {
     console.log('✅ Service Worker 已注册');
@@ -7,17 +7,13 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// ====== 弹通知函数 ======
+// ====== 2. 弹通知函数 ======
 function showNotify(title, body) {
   if (!('Notification' in window)) return;
   if (Notification.permission !== 'granted') return;
   if (navigator.serviceWorker && navigator.serviceWorker.ready) {
     navigator.serviceWorker.ready.then(function(reg) {
-      reg.showNotification(title, {
-        body: body,
-        icon: 'icon.png',
-        badge: 'icon.png'
-      });
+      reg.showNotification(title, { body: body, icon: 'icon.png', badge: 'icon.png' });
     });
   } else {
     try { new Notification(title, { body: body }); } catch(e) {}
@@ -26,262 +22,94 @@ function showNotify(title, body) {
 
 window.addEventListener('load', function() {
   setTimeout(function() {
-    // 1. 注入 CSS 样式
+    // ==========================================
+    // 样式注入
+    // ==========================================
     const style = document.createElement('style');
     style.innerHTML = `
       #qta-float-btn { display: none !important; }
       #cg-float-btn { display: none !important; }
 
+      /* 限制加号菜单高度并允许滑动 */
+      #plusMenu { max-height: 160px !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; }
+      #plusMenu::-webkit-scrollbar { width: 0px !important; display: none !important; }
+
+      /* 照片样式 */
+      .msg-item .bubble img.my-photo-img {
+        max-width: 160px !important; max-height: 200px !important;
+        border-radius: 8px !important; object-fit: cover !important; display: block !important;
+      }
+
+      /* 问问Shanks 弹窗样式 */
       .qta-overlay {
         position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.4);
-        display: none; align-items: center; justify-content: center;
-        z-index: 10000;
+        background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 10000;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       }
       .qta-overlay.active { display: flex; }
-
       .qta-modal {
-        width: 90%; max-width: 380px;
-        background: #fff; border-radius: 20px;
-        padding: 20px; box-sizing: border-box;
-        display: flex; flex-direction: column;
-        max-height: 85vh; overflow-y: auto;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        width: 90%; max-width: 380px; background: #fff; border-radius: 20px; padding: 20px; box-sizing: border-box;
+        display: flex; flex-direction: column; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         animation: qtaFadeIn 0.25s ease-out;
       }
-      @keyframes qtaFadeIn {
-        from { opacity: 0; transform: translateY(10px) scale(0.98); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-      }
-
-      .qta-header {
-        display: flex; align-items: center; justify-content: space-between;
-        margin-bottom: 15px; position: relative;
-      }
-      .qta-title {
-        font-size: 18px; font-weight: 600; color: #000;
-        width: 100%; text-align: center;
-      }
-      .qta-close {
-        position: absolute; right: 0; top: 50%;
-        transform: translateY(-50%);
-        width: 30px; height: 30px;
-        background: #f5f5f5; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 16px; color: #999;
-        cursor: pointer; user-select: none;
-      }
-
-      .qta-input, .qta-textarea {
-        width: 100%; padding: 12px 15px;
-        background: #f5f5f5; border: 1px solid #e0e0e0;
-        border-radius: 12px; font-size: 14px;
-        box-sizing: border-box; outline: none;
-        color: #333; margin-bottom: 12px; resize: none;
-      }
-      .qta-input::placeholder, .qta-textarea::placeholder { color: #999; }
+      @keyframes qtaFadeIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+      .qta-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; position: relative; }
+      .qta-title { font-size: 18px; font-weight: 600; color: #000; width: 100%; text-align: center; }
+      .qta-close { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; background: #f5f5f5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #999; cursor: pointer; user-select: none; }
+      .qta-input, .qta-textarea { width: 100%; padding: 12px 15px; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 12px; font-size: 14px; box-sizing: border-box; outline: none; color: #333; margin-bottom: 12px; resize: none; }
       .qta-textarea { height: 90px; line-height: 1.5; }
-
-      #qta-options-wrapper {
-        display: block; margin-bottom: 12px; position: relative;
-      }
-      .qta-clear-btn {
-        position: absolute; right: 10px; top: 50%;
-        transform: translateY(-50%);
-        width: 24px; height: 24px;
-        background: #e0e0e0; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 14px; color: #666;
-        cursor: pointer; user-select: none;
-      }
-
+      #qta-options-wrapper { display: block; margin-bottom: 12px; position: relative; }
+      .qta-clear-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: #e0e0e0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #666; cursor: pointer; user-select: none; }
       .qta-mode-group { display: flex; gap: 10px; margin-bottom: 15px; }
-      .qta-mode-btn {
-        flex: 1; padding: 10px 0;
-        background: #f5f5f5; border: none; border-radius: 12px;
-        font-size: 14px; color: #333;
-        cursor: pointer; text-align: center; transition: all 0.2s;
-      }
+      .qta-mode-btn { flex: 1; padding: 10px 0; background: #f5f5f5; border: none; border-radius: 12px; font-size: 14px; color: #333; cursor: pointer; text-align: center; transition: all 0.2s; }
       .qta-mode-btn.active { background: #000; color: #fff; }
-
-      .qta-hint {
-        font-size: 12px; color: #999;
-        margin-top: -8px; margin-bottom: 12px; line-height: 1.4;
-      }
-
-      .qta-row {
-        display: flex; align-items: center; justify-content: space-between;
-        margin-bottom: 15px; padding-bottom: 15px;
-        border-bottom: 1px solid #f0f0f0;
-      }
+      .qta-hint { font-size: 12px; color: #999; margin-top: -8px; margin-bottom: 12px; line-height: 1.4; }
+      .qta-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #f0f0f0; }
       .qta-row:last-of-type { border-bottom: none; margin-bottom: 10px; }
       .qta-row-label { font-size: 14px; color: #333; }
-      
       .qta-stepper { display: flex; align-items: center; gap: 10px; }
-      .qta-stepper-btn {
-        width: 36px; height: 36px;
-        background: #f5f5f5; border: none; border-radius: 8px;
-        font-size: 20px; color: #333;
-        display: flex; align-items: center; justify-content: center;
-        cursor: pointer; user-select: none;
-      }
-      .qta-stepper-btn:active { background: #e0e0e0; }
+      .qta-stepper-btn { width: 36px; height: 36px; background: #f5f5f5; border: none; border-radius: 8px; font-size: 20px; color: #333; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
       .qta-stepper-val { font-size: 16px; font-weight: 600; min-width: 30px; text-align: center; }
-
       .qta-bottom-row { display: flex; gap: 12px; margin-top: 5px; }
-      .qta-btn {
-        flex: 1; padding: 12px; border: none; border-radius: 12px;
-        font-size: 16px; font-weight: 600; cursor: pointer;
-      }
+      .qta-btn { flex: 1; padding: 12px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
       .qta-btn-cancel { background: #f5f5f5; color: #333; }
-      .qta-btn-cancel:active { background: #e0e0e0; }
       .qta-btn-send { background: #000; color: #fff; }
-      .qta-btn-send:active { opacity: 0.8; }
+      
+      .custom-plus-item { padding: 10px 20px; font-size: 14px; color: #333; cursor: pointer; border: none; background: transparent; width: 100%; text-align: left; display: flex; align-items: center; gap: 10px; }
+      .setting-cg-entry { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; color: #333; }
+      .setting-cg-entry .btn { padding: 6px 14px; border: none; border-radius: 8px; background: #000; color: #fff; font-size: 13px; cursor: pointer; }
 
-      .custom-plus-item {
-        padding: 10px 20px; font-size: 14px; color: #333;
-        cursor: pointer; border: none; background: transparent;
-        width: 100%; text-align: left;
-        display: flex; align-items: center; gap: 10px;
-      }
-      .custom-plus-item:active { background: #f0f0f0; }
-
-      .setting-cg-entry {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 10px 0; border-bottom: 1px solid #f0f0f0;
-        font-size: 14px; color: #333;
-      }
-      .setting-cg-entry .btn {
-        padding: 6px 14px; border: none; border-radius: 8px;
-        background: #000; color: #fff; font-size: 13px; cursor: pointer;
-      }
-
-      #cg-overlay {
-        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.4);
-        display: none; align-items: center; justify-content: center;
-        z-index: 10002;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      }
+      /* 字卡分组弹窗 */
+      #cg-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 10002; }
       #cg-overlay.active { display: flex; }
-
-      .cg-modal {
-        width: 90%; max-width: 400px;
-        background: #fff; border-radius: 20px;
-        padding: 20px; box-sizing: border-box;
-        display: flex; flex-direction: column;
-        max-height: 85vh;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        animation: cgFadeIn 0.25s ease-out;
-      }
-      @keyframes cgFadeIn {
-        from { opacity: 0; transform: translateY(10px) scale(0.98); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-      }
-
-      .cg-header {
-        display: flex; align-items: center; justify-content: space-between;
-        margin-bottom: 15px; position: relative;
-      }
-      .cg-title {
-        font-size: 18px; font-weight: 600; color: #000;
-        width: 100%; text-align: center;
-      }
-      .cg-close {
-        position: absolute; right: 0; top: 50%;
-        transform: translateY(-50%);
-        width: 30px; height: 30px;
-        background: #f5f5f5; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 16px; color: #999;
-        cursor: pointer; user-select: none;
-      }
-
-      .cg-group-list {
-        flex: 1; overflow-y: auto;
-        margin-bottom: 15px; max-height: 40vh; padding-right: 5px;
-      }
-      .cg-group-item {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 12px 15px; background: #f9f9f9;
-        border-radius: 12px; margin-bottom: 10px;
-        border: 1px solid transparent;
-      }
-      .cg-group-item.active { border-color: #000; background: #fff; }
-      .cg-group-name {
-        font-size: 15px; font-weight: 500; color: #333;
-        flex: 1; margin-right: 10px;
-        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        cursor: pointer;
-      }
+      .cg-modal { width: 90%; max-width: 400px; background: #fff; border-radius: 20px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; max-height: 85vh; }
+      .cg-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; position: relative; }
+      .cg-title { font-size: 18px; font-weight: 600; color: #000; width: 100%; text-align: center; }
+      .cg-close { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; background: #f5f5f5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #999; cursor: pointer; }
+      .cg-group-list { flex: 1; overflow-y: auto; margin-bottom: 15px; max-height: 40vh; }
+      .cg-group-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; background: #f9f9f9; border-radius: 12px; margin-bottom: 10px; }
+      .cg-group-name { font-size: 15px; color: #333; flex: 1; cursor: pointer; }
       .cg-group-actions { display: flex; gap: 10px; }
-      .cg-btn-icon {
-        width: 32px; height: 32px;
-        background: #fff; border: 1px solid #e0e0e0;
-        border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 14px; color: #333;
-        cursor: pointer; user-select: none;
-      }
-      .cg-btn-icon:active { background: #f0f0f0; }
-
+      .cg-btn-icon { width: 32px; height: 32px; background: #fff; border: 1px solid #e0e0e0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #333; cursor: pointer; }
       .cg-bottom { display: flex; flex-direction: column; gap: 10px; }
       .cg-new-group-row { display: flex; gap: 10px; }
-      .cg-input {
-        flex: 1; padding: 12px 15px;
-        background: #f5f5f5; border: 1px solid #e0e0e0;
-        border-radius: 12px; font-size: 14px;
-        box-sizing: border-box; outline: none; color: #333;
-      }
-      .cg-input::placeholder { color: #999; }
-      
-      .cg-btn {
-        padding: 12px 20px; border: none; border-radius: 12px;
-        font-size: 15px; font-weight: 600;
-        cursor: pointer; text-align: center;
-      }
+      .cg-input { flex: 1; padding: 12px 15px; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 12px; font-size: 14px; outline: none; }
+      .cg-btn { padding: 12px 20px; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
       .cg-btn-black { background: #000; color: #fff; }
-      .cg-btn-black:active { opacity: 0.8; }
       .cg-btn-gray { background: #f5f5f5; color: #333; }
-      .cg-btn-gray:active { background: #e0e0e0; }
-      
-      #cg-card-select-overlay {
-        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.5);
-        display: none; align-items: center; justify-content: center;
-        z-index: 10003;
-      }
+      #cg-card-select-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 10003; }
       #cg-card-select-overlay.active { display: flex; }
-      .cg-card-select-modal {
-        width: 90%; max-width: 400px;
-        background: #fff; border-radius: 20px;
-        padding: 20px;
-        display: flex; flex-direction: column; max-height: 80vh;
-      }
-      .cg-card-select-list {
-        flex: 1; overflow-y: auto; margin-bottom: 15px;
-        display: flex; flex-direction: column; gap: 8px;
-      }
-      .cg-card-checkbox {
-        display: flex; align-items: center;
-        padding: 12px; background: #f9f9f9;
-        border-radius: 10px; cursor: pointer;
-        border: 1px solid transparent;
-      }
-      .cg-card-checkbox.selected { border-color: #000; background: #fff; }
-      .cg-card-checkbox input {
-        margin-right: 10px; width: 18px; height: 18px;
-        accent-color: #000;
-      }
-      .cg-card-text {
-        font-size: 14px; color: #333; flex: 1;
-        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      }
+      .cg-card-select-modal { width: 90%; max-width: 400px; background: #fff; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; max-height: 80vh; }
+      .cg-card-select-list { flex: 1; overflow-y: auto; margin-bottom: 15px; }
+      .cg-card-checkbox { display: flex; align-items: center; padding: 12px; background: #f9f9f9; border-radius: 10px; cursor: pointer; margin-bottom: 8px; }
+      .cg-card-checkbox.selected { border: 1px solid #000; background: #fff; }
+      .cg-card-text { font-size: 14px; color: #333; flex: 1; margin-left: 10px; }
     `;
     document.head.appendChild(style);
 
-    // 2. 弹窗 HTML
+    // ==========================================
+    // 弹窗 HTML 注入
+    // ==========================================
     const qtaOverlay = document.createElement('div');
     qtaOverlay.className = 'qta-overlay';
     qtaOverlay.id = 'qta-overlay';
@@ -329,17 +157,14 @@ window.addEventListener('load', function() {
     cgOverlay.id = 'cg-overlay';
     cgOverlay.innerHTML = `
       <div class="cg-modal">
-        <div class="cg-header">
-          <div class="cg-title">字卡分组管理</div>
-          <div class="cg-close" id="cg-close">✕</div>
-        </div>
+        <div class="cg-header"><div class="cg-title">字卡分组管理</div><div class="cg-close" id="cg-close">✕</div></div>
         <div class="cg-group-list" id="cg-group-list"></div>
         <div class="cg-bottom">
           <div class="cg-new-group-row">
-            <input type="text" class="cg-input" id="cg-new-group-name" placeholder="新建分组名称...">
+            <input type="text" class="cg-input" id="cg-new-group-name" placeholder="新建分组...">
             <button class="cg-btn cg-btn-black" id="cg-add-group-btn">新建</button>
           </div>
-          <button class="cg-btn cg-btn-gray" id="cg-save-btn">保存分组配置</button>
+          <button class="cg-btn cg-btn-gray" id="cg-save-btn">保存配置</button>
         </div>
       </div>
     `;
@@ -349,74 +174,87 @@ window.addEventListener('load', function() {
     cardSelectOverlay.id = 'cg-card-select-overlay';
     cardSelectOverlay.innerHTML = `
       <div class="cg-card-select-modal">
-        <div class="cg-header">
-          <div class="cg-title" id="cg-select-title">选择字卡</div>
-          <div class="cg-close" id="cg-select-close">✕</div>
-        </div>
+        <div class="cg-header"><div class="cg-title" id="cg-select-title">选择字卡</div><div class="cg-close" id="cg-select-close">✕</div></div>
         <div class="cg-card-select-list" id="cg-card-select-list"></div>
-        <button class="cg-btn cg-btn-black" id="cg-select-confirm">确定添加</button>
+        <button class="cg-btn cg-btn-black" id="cg-select-confirm">确定</button>
       </div>
     `;
     document.body.appendChild(cardSelectOverlay);
 
-    // 3. 逻辑
+    // ==========================================
+    // 问问Shanks 逻辑
+    // ==========================================
     let currentMode = 'single';
     let thinkTime = 8;
     let maxSelect = 3;
     let cardGroups = {};
     let currentGroupName = null;
 
-    if (!data.questionnaire) {
-      data.questionnaire = { question: '', options: [], mode: 'single', thinkTime: 8, maxSelect: 3 };
-    } else {
-      currentMode = data.questionnaire.mode || 'single';
-      if (currentMode === 'text') currentMode = 'single';
-      thinkTime = data.questionnaire.thinkTime || 8;
-      maxSelect = data.questionnaire.maxSelect || 3;
-      document.getElementById('qta-question').value = data.questionnaire.question || '';
-      document.getElementById('qta-time-val').innerText = thinkTime;
-      document.getElementById('qta-max-val').innerText = maxSelect;
-      if (data.questionnaire.options && data.questionnaire.options.length > 0) {
-        document.getElementById('qta-options-input').value = data.questionnaire.options.join('\n');
-      }
-      updateModeUI();
-    }
-
+    if (!data.questionnaire) data.questionnaire = { question: '', options: [], mode: 'single', thinkTime: 8, maxSelect: 3 };
     if (!data.cardGroups) data.cardGroups = {};
     cardGroups = JSON.parse(JSON.stringify(data.cardGroups));
 
+    document.getElementById('qta-close').onclick = () => qtaOverlay.classList.remove('active');
+    document.getElementById('qta-cancel').onclick = () => qtaOverlay.classList.remove('active');
+    qtaOverlay.onclick = (e) => { if (e.target === qtaOverlay) qtaOverlay.classList.remove('active'); };
+    document.getElementById('cg-close').onclick = () => cgOverlay.classList.remove('active');
+    cardSelectOverlay.onclick = (e) => { if (e.target === cardSelectOverlay) cardSelectOverlay.classList.remove('active'); };
+
+    document.getElementById('qta-mode-group').onclick = (e) => {
+      const btn = e.target.closest('.qta-mode-btn');
+      if (!btn) return;
+      currentMode = btn.dataset.mode;
+      document.querySelectorAll('.qta-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === currentMode));
+      document.getElementById('qta-max-select-row').style.display = currentMode === 'multiple' ? 'flex' : 'none';
+      document.getElementById('qta-options-hint').innerText = currentMode === 'multiple' ? '多选题选项：每行一个' : '单选题选项：每行一个';
+    };
+
+    document.getElementById('qta-options-clear').onclick = () => document.getElementById('qta-options-input').value = '';
+    document.getElementById('qta-time-minus').onclick = () => { if (thinkTime > 1) { thinkTime--; document.getElementById('qta-time-val').innerText = thinkTime; } };
+    document.getElementById('qta-time-plus').onclick = () => { thinkTime++; document.getElementById('qta-time-val').innerText = thinkTime; };
+    document.getElementById('qta-max-minus').onclick = () => { if (maxSelect > 1) { maxSelect--; document.getElementById('qta-max-val').innerText = maxSelect; } };
+    document.getElementById('qta-max-plus').onclick = () => { maxSelect++; document.getElementById('qta-max-val').innerText = maxSelect; };
+
+    document.getElementById('qta-send').onclick = () => {
+      const q = document.getElementById('qta-question').value.trim() || '（空问题）';
+      const o = document.getElementById('qta-options-input').value.trim();
+      let options = o ? o.split('\n').map(s=>s.trim()).filter(s=>s) : [];
+      data.questionnaire = { question: q, options: options, mode: currentMode, thinkTime: thinkTime, maxSelect: maxSelect };
+      saveData();
+      qtaOverlay.classList.remove('active');
+      addMessage(q, true, null, null);
+      
+      if (options.length === 0) {
+        setTimeout(() => enqueueReply('（未设置选项）', thinkTime, null), 0);
+      } else if (currentMode === 'single') {
+        let sel = [options[Math.floor(Math.random() * options.length)]];
+        setTimeout(() => addMessage('📋 问问Shanks · ' + q + '\nShanks：' + sel.join('、'), false, null, null), thinkTime * 1000);
+      } else {
+        const shuffled = [...options].sort(() => 0.5 - Math.random());
+        const count = Math.min(Math.floor(Math.random() * maxSelect) + 1, options.length);
+        let sel = shuffled.slice(0, count);
+        setTimeout(() => addMessage('📋 问问Shanks · ' + q + '\nShanks：' + sel.join('、'), false, null, null), thinkTime * 1000);
+      }
+    };
+
+    // ==========================================
+    // 字卡分组逻辑
+    // ==========================================
     function renderGroupList() {
       const listEl = document.getElementById('cg-group-list');
       listEl.innerHTML = '';
-      const groupNames = Object.keys(cardGroups);
-      if (groupNames.length === 0) {
-        listEl.innerHTML = '<div style="text-align:center; color:#999; font-size:14px; padding:20px 0;">暂无分组，请新建一个</div>';
-        return;
-      }
-      groupNames.forEach(name => {
+      const names = Object.keys(cardGroups);
+      if (names.length === 0) { listEl.innerHTML = '<div style="text-align:center;color:#999;font-size:14px;padding:20px 0;">暂无分组</div>'; return; }
+      names.forEach(name => {
         const item = document.createElement('div');
         item.className = 'cg-group-item';
-        item.innerHTML = `
-          <div class="cg-group-name">${name} <span style="font-size:12px; color:#999;">(${cardGroups[name].length})</span></div>
-          <div class="cg-group-actions">
-            <div class="cg-btn-icon cg-add-card" title="添加字卡">+</div>
-            <div class="cg-btn-icon cg-del-group" title="删除分组">✕</div>
-          </div>
-        `;
-        item.querySelector('.cg-group-name').addEventListener('click', () => {
-          currentGroupName = name; openCardSelect(name);
-        });
-        item.querySelector('.cg-add-card').addEventListener('click', (e) => {
-          e.stopPropagation(); currentGroupName = name; openCardSelect(name);
-        });
-        item.querySelector('.cg-del-group').addEventListener('click', (e) => {
+        item.innerHTML = `<div class="cg-group-name">${name} <span style="font-size:12px;color:#999;">(${cardGroups[name].length})</span></div><div class="cg-group-actions"><div class="cg-btn-icon cg-add-card">+</div><div class="cg-btn-icon cg-del-group">✕</div></div>`;
+        item.querySelector('.cg-group-name').onclick = () => { currentGroupName = name; openCardSelect(name); };
+        item.querySelector('.cg-add-card').onclick = (e) => { e.stopPropagation(); currentGroupName = name; openCardSelect(name); };
+        item.querySelector('.cg-del-group').onclick = (e) => {
           e.stopPropagation();
-          if (confirm(`确定要删除分组「${name}」吗？`)) {
-            delete cardGroups[name];
-            data.cardGroups = JSON.parse(JSON.stringify(cardGroups));
-            saveData(); renderGroupList();
-          }
-        });
+          if (confirm(`删除分组「${name}」？`)) { delete cardGroups[name]; data.cardGroups = cardGroups; saveData(); renderGroupList(); }
+        };
         listEl.appendChild(item);
       });
     }
@@ -425,205 +263,139 @@ window.addEventListener('load', function() {
       document.getElementById('cg-select-title').innerText = `选择字卡加入「${groupName}」`;
       const listEl = document.getElementById('cg-card-select-list');
       listEl.innerHTML = '';
-      if (!data.cards || data.cards.length === 0) {
-        listEl.innerHTML = '<div style="text-align:center; color:#999; font-size:14px; padding:20px 0;">当前没有字卡数据</div>';
-        cardSelectOverlay.classList.add('active');
-        return;
-      }
-      const existingCards = cardGroups[groupName] || [];
+      if (!data.cards || data.cards.length === 0) { listEl.innerHTML = '<div style="text-align:center;color:#999;font-size:14px;padding:20px 0;">当前没有字卡数据</div>'; cardSelectOverlay.classList.add('active'); return; }
+      const existing = cardGroups[groupName] || [];
       data.cards.forEach(cardText => {
-        const isSelected = existingCards.includes(cardText);
+        const isSel = existing.includes(cardText);
         const item = document.createElement('label');
-        item.className = `cg-card-checkbox ${isSelected ? 'selected' : ''}`;
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox'; checkbox.checked = isSelected; checkbox.value = cardText;
-        checkbox.addEventListener('change', function() { item.classList.toggle('selected', this.checked); });
-        const textSpan = document.createElement('span');
-        textSpan.className = 'cg-card-text'; textSpan.innerText = cardText;
-        item.appendChild(checkbox); item.appendChild(textSpan);
+        item.className = `cg-card-checkbox ${isSel ? 'selected' : ''}`;
+        item.innerHTML = `<input type="checkbox" value="${cardText.replace(/"/g, '&quot;')}" ${isSel ? 'checked' : ''}><span class="cg-card-text">${cardText}</span>`;
+        item.querySelector('input').onchange = function() { item.classList.toggle('selected', this.checked); };
         listEl.appendChild(item);
       });
       cardSelectOverlay.classList.add('active');
     }
 
-    document.getElementById('qta-close').addEventListener('click', () => qtaOverlay.classList.remove('active'));
-    document.getElementById('qta-cancel').addEventListener('click', () => qtaOverlay.classList.remove('active'));
-    qtaOverlay.addEventListener('click', (e) => { if (e.target === qtaOverlay) qtaOverlay.classList.remove('active'); });
-
-    document.getElementById('cg-close').addEventListener('click', () => cgOverlay.classList.remove('active'));
-    cgOverlay.addEventListener('click', (e) => { if (e.target === cgOverlay) cgOverlay.classList.remove('active'); });
-    document.getElementById('cg-select-close').addEventListener('click', () => cardSelectOverlay.classList.remove('active'));
-    cardSelectOverlay.addEventListener('click', (e) => { if (e.target === cardSelectOverlay) cardSelectOverlay.classList.remove('active'); });
-
-    document.getElementById('cg-add-group-btn').addEventListener('click', () => {
-      const nameInput = document.getElementById('cg-new-group-name');
-      const name = nameInput.value.trim();
-      if (!name) { alert('请输入分组名称'); return; }
-      if (cardGroups[name]) { alert('该分组已存在'); return; }
+    document.getElementById('cg-add-group-btn').onclick = () => {
+      const name = document.getElementById('cg-new-group-name').value.trim();
+      if (!name) return alert('请输入分组名称');
+      if (cardGroups[name]) return alert('该分组已存在');
       cardGroups[name] = [];
-      data.cardGroups = JSON.parse(JSON.stringify(cardGroups));
-      nameInput.value = ''; saveData(); renderGroupList();
-    });
-
-    document.getElementById('cg-select-confirm').addEventListener('click', () => {
+      data.cardGroups = cardGroups; saveData(); document.getElementById('cg-new-group-name').value = ''; renderGroupList();
+    };
+    document.getElementById('cg-select-confirm').onclick = () => {
       if (!currentGroupName) return;
-      const selectedCards = [];
-      document.querySelectorAll('#cg-card-select-list input[type="checkbox"]:checked').forEach(cb => {
-        selectedCards.push(cb.value);
-      });
-      cardGroups[currentGroupName] = selectedCards;
-      data.cardGroups = JSON.parse(JSON.stringify(cardGroups));
-      saveData(); cardSelectOverlay.classList.remove('active'); renderGroupList();
-    });
+      const sels = [];
+      document.querySelectorAll('#cg-card-select-list input[type="checkbox"]:checked').forEach(cb => sels.push(cb.value));
+      cardGroups[currentGroupName] = sels;
+      data.cardGroups = cardGroups; saveData(); cardSelectOverlay.classList.remove('active'); renderGroupList();
+    };
+    document.getElementById('cg-save-btn').onclick = () => { data.cardGroups = cardGroups; saveData(); alert('已保存'); cgOverlay.classList.remove('active'); };
 
-    document.getElementById('cg-save-btn').addEventListener('click', () => {
-      data.cardGroups = JSON.parse(JSON.stringify(cardGroups));
-      saveData(); alert('分组配置已保存'); cgOverlay.classList.remove('active');
-    });
-
-    document.getElementById('qta-mode-group').addEventListener('click', (e) => {
-      const btn = e.target.closest('.qta-mode-btn');
-      if (!btn) return;
-      currentMode = btn.dataset.mode; updateModeUI();
-    });
-
-    function updateModeUI() {
-      document.querySelectorAll('.qta-mode-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.mode === currentMode);
-      });
-      const optionsHint = document.getElementById('qta-options-hint');
-      const maxSelectRow = document.getElementById('qta-max-select-row');
-      if (currentMode === 'multiple') {
-        maxSelectRow.style.display = 'flex';
-        optionsHint.innerText = '多选题选项：每行一个';
-      } else {
-        maxSelectRow.style.display = 'none';
-        optionsHint.innerText = '单选题选项：每行一个';
-      }
-    }
-
-    document.getElementById('qta-options-clear').addEventListener('click', () => {
-      document.getElementById('qta-options-input').value = '';
-    });
-    document.getElementById('qta-time-minus').addEventListener('click', () => {
-      if (thinkTime > 1) { thinkTime--; document.getElementById('qta-time-val').innerText = thinkTime; }
-    });
-    document.getElementById('qta-time-plus').addEventListener('click', () => {
-      thinkTime++; document.getElementById('qta-time-val').innerText = thinkTime;
-    });
-    document.getElementById('qta-max-minus').addEventListener('click', () => {
-      if (maxSelect > 1) { maxSelect--; document.getElementById('qta-max-val').innerText = maxSelect; }
-    });
-    document.getElementById('qta-max-plus').addEventListener('click', () => {
-      maxSelect++; document.getElementById('qta-max-val').innerText = maxSelect;
-    });
-
-    // ===== 问卷发送 =====
-    document.getElementById('qta-send').addEventListener('click', () => {
-      const questionInput = document.getElementById('qta-question').value.trim() || '（空问题）';
-      const optionsInput = document.getElementById('qta-options-input').value.trim();
-      data.questionnaire.question = questionInput;
-      data.questionnaire.mode = currentMode;
-      data.questionnaire.thinkTime = thinkTime;
-      data.questionnaire.maxSelect = maxSelect;
-      let options = [];
-      if (optionsInput) {
-        options = optionsInput.split('\n').map(s => s.trim()).filter(s => s);
-      }
-      data.questionnaire.options = options;
-      saveData();
-      qtaOverlay.classList.remove('active');
-      addMessage(questionInput, true, null, null);
-
-      let selectedOptions = [];
-      if (options.length === 0) {
-        setTimeout(() => enqueueReply('（未设置选项）', thinkTime, null), 0);
-      } else if (currentMode === 'single') {
-        selectedOptions = [options[Math.floor(Math.random() * options.length)]];
-        setTimeout(() => {
-          addMessage('📋 问问Shanks · ' + questionInput + '\nShanks：' + selectedOptions.join('、'), false, null, null);
-        }, thinkTime * 1000);
-      } else if (currentMode === 'multiple') {
-        const shuffled = [...options].sort(() => 0.5 - Math.random());
-        const count = Math.min(Math.floor(Math.random() * maxSelect) + 1, options.length);
-        selectedOptions = shuffled.slice(0, count);
-        setTimeout(() => {
-          addMessage('📋 问问Shanks · ' + questionInput + '\nShanks：' + selectedOptions.join('、'), false, null, null);
-        }, thinkTime * 1000);
-      }
-    });
-
-    // ===== 把按钮挂到原界面 =====
-    function hookPlusMenu() {
+    // ==========================================
+    // 挂载按钮到原界面（删除了表情包入口）
+    // ==========================================
+    var hookTimer = setInterval(function() {
       var plusMenu = document.getElementById('plusMenu');
-      if (!plusMenu) { setTimeout(hookPlusMenu, 500); return; }
-      if (document.getElementById('custom-qta-item')) return;
-      var item = document.createElement('button');
-      item.className = 'custom-plus-item menu-item';
-      item.id = 'custom-qta-item';
-      item.innerHTML = '🍶 问问Shanks';
-      item.addEventListener('click', function() {
-        plusMenu.classList.remove('active');
-        qtaOverlay.classList.add('active');
-      });
-      plusMenu.appendChild(item);
-    }
-
-    function hookSettingsPanel() {
       var panel = document.querySelector('.settings-panel');
-      if (!panel) { setTimeout(hookSettingsPanel, 500); return; }
-      if (document.getElementById('setting-cg-entry')) return;
-      var groups = panel.querySelectorAll('.setting-group');
-      var targetGroup = null;
-      groups.forEach(function(g) {
-        var label = g.querySelector('.setting-group-label');
-        if (label && label.innerText.indexOf('字卡管理') !== -1) {
-          targetGroup = g;
-        }
-      });
-      if (!targetGroup) { setTimeout(hookSettingsPanel, 500); return; }
-      var entry = document.createElement('div');
-      entry.className = 'setting-cg-entry';
-      entry.id = 'setting-cg-entry';
-      entry.innerHTML = '<span>📁 字卡分组管理</span><button class="btn">打开</button>';
-      entry.querySelector('.btn').addEventListener('click', function() {
-        renderGroupList();
-        cgOverlay.classList.add('active');
-      });
-      var label = targetGroup.querySelector('.setting-group-label');
-      if (label && label.nextSibling) {
-        targetGroup.insertBefore(entry, label.nextSibling);
-      } else {
-        targetGroup.appendChild(entry);
-      }
-    }
+      if (!plusMenu || !panel) return;
+      
+      // 移除原版的表情包按钮
+      var stickerBtn = document.getElementById('plusStickerBtn');
+      if (stickerBtn) stickerBtn.style.display = 'none';
 
-    hookPlusMenu();
-    hookSettingsPanel();
+      // 挂载 问问Shanks 和 相册
+      if (!document.getElementById('custom-qta-item')) {
+        var qtaItem = document.createElement('button');
+        qtaItem.className = 'custom-plus-item menu-item';
+        qtaItem.id = 'custom-qta-item';
+        qtaItem.innerHTML = '🍶 问问Shanks';
+        qtaItem.onclick = function() { plusMenu.classList.remove('active'); qtaOverlay.classList.add('active'); };
+        plusMenu.appendChild(qtaItem);
+      }
+
+      if (!document.getElementById('custom-photo-item')) {
+        var photoItem = document.createElement('button');
+        photoItem.className = 'custom-plus-item menu-item';
+        photoItem.id = 'custom-photo-item';
+        photoItem.innerHTML = '🍽 相册';
+        plusMenu.insertBefore(photoItem, plusMenu.firstChild);
+        
+        var fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+
+        photoItem.onclick = function() { plusMenu.classList.remove('active'); fileInput.click(); };
+        fileInput.onchange = function(e) {
+          var file = e.target.files[0];
+          if (!file) return;
+          if (file.size > 5 * 1024 * 1024) return alert('图片太大了，请选 5MB 以下的图片');
+          var reader = new FileReader();
+          reader.onload = function(ev) {
+            if (!window.data) window.data = { messages: [] };
+            if (!window.data.messages) window.data.messages = [];
+            
+            window.data.messages.push({
+              type: 'my_photo', src: ev.target.result, self: true,
+              time: new Date().toLocaleTimeString('zh-CN', { hour12: false }).substring(0, 5)
+            });
+            if (typeof saveData === 'function') saveData();
+            if (typeof renderMessages === 'function') renderMessages();
+            
+            if (typeof getRandomDelay === 'function' && typeof enqueueReply === 'function') {
+              var card = (window.data.cards && window.data.cards.length > 0) ? window.data.cards[Math.floor(Math.random() * window.data.cards.length)] : '收到你的照片啦~';
+              enqueueReply(card, getRandomDelay());
+            }
+          };
+          reader.readAsDataURL(file);
+          fileInput.value = '';
+        };
+      }
+
+      // 挂载 字卡分组
+      if (!document.getElementById('setting-cg-entry')) {
+        var groups = panel.querySelectorAll('.setting-group');
+        var target = null;
+        groups.forEach(function(g) {
+          var label = g.querySelector('.setting-group-label');
+          if (label && label.innerText.indexOf('字卡管理') !== -1) target = g;
+        });
+        if (target) {
+          var entry = document.createElement('div');
+          entry.className = 'setting-cg-entry';
+          entry.id = 'setting-cg-entry';
+          entry.innerHTML = '<span>📁 字卡分组管理</span><button class="btn">打开</button>';
+          entry.querySelector('.btn').onclick = function() { renderGroupList(); cgOverlay.classList.add('active'); };
+          var label = target.querySelector('.setting-group-label');
+          if (label && label.nextSibling) target.insertBefore(entry, label.nextSibling);
+          else target.appendChild(entry);
+        }
+      }
+      clearInterval(hookTimer);
+    }, 500);
 
   }, 1000);
 });
 
-// ====== 隐藏旧设置项，加自定义 CSS 输入框 ======
+// ==========================================
+// 隐藏旧设置项
+// ==========================================
 (function() {
   var timer = setInterval(function() {
     var panel = document.querySelector('.settings-panel');
     if (!panel) return;
     var groups = panel.querySelectorAll('.setting-group');
     if (groups.length === 0) return;
-
-    if (document.getElementById('custom-css-section')) {
-      clearInterval(timer);
-      return;
-    }
+    if (document.getElementById('custom-css-section')) { clearInterval(timer); return; }
 
     groups.forEach(function(g) {
       var label = g.querySelector('.setting-group-label');
       if (!label) return;
       var txt = label.innerText || '';
-      if (txt.indexOf('界面主题') !== -1 ||
-          txt.indexOf('气泡样式') !== -1 ||
-          txt.indexOf('气泡颜色') !== -1) {
+      // 把表情包频率也隐藏掉！
+      if (txt.indexOf('界面主题') !== -1 || txt.indexOf('气泡样式') !== -1 || txt.indexOf('气泡颜色') !== -1 || txt.indexOf('表情包频率') !== -1) {
         g.style.display = 'none';
       }
     });
@@ -631,9 +403,7 @@ window.addEventListener('load', function() {
     var anchorGroup = null;
     groups.forEach(function(g) {
       var label = g.querySelector('.setting-group-label');
-      if (label && (label.innerText || '').indexOf('聊天字体') !== -1) {
-        anchorGroup = g;
-      }
+      if (label && (label.innerText || '').indexOf('聊天字体') !== -1) anchorGroup = g;
     });
     if (!anchorGroup) return;
 
@@ -656,62 +426,39 @@ window.addEventListener('load', function() {
     document.head.appendChild(styleEl);
 
     var input = document.getElementById('custom-css-input');
-    var applyBtn = document.getElementById('custom-css-apply');
-    var resetBtn = document.getElementById('custom-css-reset');
-
     function applyCustomCSS(css) {
       document.getElementById('custom-css-style').innerHTML = css || '';
-      if (window.data) {
-        window.data.customCSS = css || '';
-        if (typeof saveData === 'function') saveData();
-      }
+      if (window.data) { window.data.customCSS = css || ''; if (typeof saveData === 'function') saveData(); }
     }
-
-    if (window.data && window.data.customCSS) {
-      input.value = window.data.customCSS;
-      applyCustomCSS(window.data.customCSS);
-    }
-
-    applyBtn.addEventListener('click', function() {
-      applyCustomCSS(input.value);
-      alert('已应用');
-    });
-    resetBtn.addEventListener('click', function() {
-      input.value = '';
-      applyCustomCSS('');
-      alert('已恢复');
-    });
-
+    if (window.data && window.data.customCSS) { input.value = window.data.customCSS; applyCustomCSS(window.data.customCSS); }
+    document.getElementById('custom-css-apply').onclick = function() { applyCustomCSS(input.value); alert('已应用'); };
+    document.getElementById('custom-css-reset').onclick = function() { input.value = ''; applyCustomCSS(''); alert('已恢复'); };
     clearInterval(timer);
   }, 800);
 })();
 
-// ====== 主动发消息 + 弹通知 ======
+// ==========================================
+// 主动发消息 + 弹通知（依附在引用概率下面）
+// ==========================================
 (function() {
   var timer = setInterval(function() {
     var panel = document.querySelector('.settings-panel');
     if (!panel) return;
     var groups = panel.querySelectorAll('.setting-group');
     if (groups.length === 0) return;
-    if (document.getElementById('active-msg-section')) {
-      clearInterval(timer);
-      return;
-    }
+    if (document.getElementById('active-msg-section')) { clearInterval(timer); return; }
 
     var anchorGroup = null;
     groups.forEach(function(g) {
       var label = g.querySelector('.setting-group-label');
-      if (label && (label.innerText || '').indexOf('表情包频率') !== -1) {
-        anchorGroup = g;
-      }
+      // 挂在引用概率后面
+      if (label && (label.innerText || '').indexOf('引用概率') !== -1) anchorGroup = g;
     });
     if (!anchorGroup) return;
-
     if (!window.data) return;
+    
     if (typeof window.data.activeMsgEnabled === 'undefined') {
-      window.data.activeMsgEnabled = false;
-      window.data.activeMsgInterval = 300;
-      window.data.notifyEnabled = false;
+      window.data.activeMsgEnabled = false; window.data.activeMsgInterval = 300; window.data.notifyEnabled = false;
     }
 
     var section = document.createElement('div');
@@ -734,9 +481,7 @@ window.addEventListener('load', function() {
         <input type="checkbox" id="notify-toggle" style="width:20px;height:20px;accent-color:#000;">
       </div>
       <div style="font-size:11px;color:#999;">开启后，对方发消息时弹出系统通知</div>
-      <div style="margin-top:10px;">
-        <button id="test-notify-btn" style="width:100%;padding:10px;border:none;border-radius:10px;background:#000;color:#fff;font-size:14px;cursor:pointer;">🔔 测试通知</button>
-      </div>
+      <div style="margin-top:10px;"><button id="test-notify-btn" style="width:100%;padding:10px;border:none;border-radius:10px;background:#000;color:#fff;font-size:14px;cursor:pointer;">🔔 测试通知</button></div>
     `;
     anchorGroup.parentNode.insertBefore(section, anchorGroup.nextSibling);
 
@@ -748,243 +493,89 @@ window.addEventListener('load', function() {
 
     toggle.checked = window.data.activeMsgEnabled;
     var initMin = Math.round((window.data.activeMsgInterval || 300) / 60);
-    if (initMin < 5) initMin = 5;
-    if (initMin > 30) initMin = 30;
-    slider.value = initMin;
-    valSpan.innerText = initMin + '分';
+    if (initMin < 5) initMin = 5; if (initMin > 30) initMin = 30;
+    slider.value = initMin; valSpan.innerText = initMin + '分';
     notifyToggle.checked = window.data.notifyEnabled;
 
-    function save() {
-      if (typeof saveData === 'function') saveData();
-    }
+    function save() { if (typeof saveData === 'function') saveData(); }
+    toggle.onchange = function() { window.data.activeMsgEnabled = this.checked; save(); };
+    slider.oninput = function() { var min = parseInt(this.value); valSpan.innerText = min + '分'; window.data.activeMsgInterval = min * 60; save(); };
 
-    toggle.addEventListener('change', function() {
-      window.data.activeMsgEnabled = this.checked;
-      save();
-    });
-    slider.addEventListener('input', function() {
-      var min = parseInt(this.value);
-      valSpan.innerText = min + '分';
-      window.data.activeMsgInterval = min * 60;
-      save();
-    });
-
-    notifyToggle.addEventListener('change', function() {
+    notifyToggle.onchange = function() {
       var self = this;
       if (self.checked) {
-        if (!('Notification' in window)) {
-          alert('此浏览器不支持通知');
-          self.checked = false;
-          return;
-        }
+        if (!('Notification' in window)) { alert('此浏览器不支持通知'); self.checked = false; return; }
         if (Notification.permission === 'granted') {
-          window.data.notifyEnabled = true;
-          showNotify('🪽 通知已开启', '之后对方发消息时会弹通知');
-          save();
+          window.data.notifyEnabled = true; showNotify('🪽 通知已开启', '之后对方发消息时会弹通知'); save();
         } else if (Notification.permission === 'denied') {
-          alert('通知权限被拒绝，请到浏览器设置里手动开启');
-          self.checked = false;
+          alert('通知权限被拒绝，请到浏览器设置里手动开启'); self.checked = false;
         } else {
           Notification.requestPermission().then(function(p) {
-            if (p === 'granted') {
-              window.data.notifyEnabled = true;
-              showNotify('🪽 通知已开启', '之后对方发消息时会弹通知');
-            } else {
-              self.checked = false;
-              window.data.notifyEnabled = false;
-            }
+            if (p === 'granted') { window.data.notifyEnabled = true; showNotify('🪽 通知已开启', '之后对方发消息时会弹通知'); } 
+            else { self.checked = false; window.data.notifyEnabled = false; }
             save();
           });
         }
-      } else {
-        window.data.notifyEnabled = false;
-        save();
-      }
-    });
+      } else { window.data.notifyEnabled = false; save(); }
+    };
 
-    testBtn.addEventListener('click', function() {
-      if (!('Notification' in window)) { alert('此浏览器不支持通知'); return; }
+    testBtn.onclick = function() {
+      if (!('Notification' in window)) return alert('此浏览器不支持通知');
       if (Notification.permission !== 'granted') {
         Notification.requestPermission().then(function(p) {
-          if (p === 'granted') {
-            showNotify('🪽 测试通知', '如果你看到这条，说明通知功能正常');
-          } else {
-            alert('你拒绝了通知权限');
-          }
+          if (p === 'granted') showNotify('🪽 测试通知', '如果你看到这条，说明通知功能正常');
+          else alert('你拒绝了通知权限');
         });
-      } else {
-        showNotify('🪽 测试通知', '如果你看到这条，说明通知功能正常');
-      }
-    });
-
+      } else { showNotify('🪽 测试通知', '如果你看到这条，说明通知功能正常'); }
+    };
     clearInterval(timer);
   }, 800);
 
-  // ===== 定时检查 =====
   setInterval(function() {
     if (!window.data || !window.data.activeMsgEnabled) return;
     if (!window.data.cards || window.data.cards.length === 0) return;
     if (typeof addMessage !== 'function') return;
-
     var now = Date.now();
-    if (!window.data.lastActiveMsgTime) {
-      window.data.lastActiveMsgTime = now;
-      if (typeof saveData === 'function') saveData();
-      return;
-    }
+    if (!window.data.lastActiveMsgTime) { window.data.lastActiveMsgTime = now; if (typeof saveData === 'function') saveData(); return; }
     var interval = (window.data.activeMsgInterval || 300) * 1000;
     if (now - window.data.lastActiveMsgTime >= interval) {
-      window.data.lastActiveMsgTime = now;
-      if (typeof saveData === 'function') saveData();
+      window.data.lastActiveMsgTime = now; if (typeof saveData === 'function') saveData();
       var card = window.data.cards[Math.floor(Math.random() * window.data.cards.length)];
       addMessage(card, false, null, null);
-
-      if (window.data.notifyEnabled) {
-        showNotify('🪽 ' + (window.data.otherName || 'TA'), card);
-      }
+      if (window.data.notifyEnabled) showNotify('🪽 ' + (window.data.otherName || 'TA'), card);
     }
   }, 5000);
-})();// ====== 🍽 相册上传功能（真正终极版） ======
-(function() {
-  // 1. 注入样式
-  var style = document.createElement('style');
-  style.innerHTML = `
-    .msg-item .bubble img.my-photo-img {
-      max-width: 160px !important;
-      max-height: 200px !important;
-      border-radius: 8px !important;
-      object-fit: cover !important;
-      display: block !important;
-    }
-  `;
-  document.head.appendChild(style);
-
-  var timer = setInterval(function() {
-    var plusMenu = document.getElementById('plusMenu');
-    if (!plusMenu) return;
-    if (document.getElementById('custom-photo-item')) {
-      clearInterval(timer);
-      return;
-    }
-
-    // 2. 加号菜单加按钮
-    var item = document.createElement('button');
-    item.className = 'custom-plus-item menu-item';
-    item.id = 'custom-photo-item';
-    item.innerHTML = '🍽 相册';
-    plusMenu.insertBefore(item, plusMenu.firstChild);
-
-    var fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    fileInput.style.display = 'none';
-    document.body.appendChild(fileInput);
-
-    // 3. 点击选图
-    item.addEventListener('click', function() {
-      plusMenu.classList.remove('active');
-      fileInput.click();
-    });
-
-    // 4. 选图后强制处理
-    fileInput.addEventListener('change', function(e) {
-      var file = e.target.files[0];
-      if (!file) return;
-
-      if (file.size > 5 * 1024 * 1024) {
-        alert('图片太大了，请选择 5MB 以下的图片哦~');
-        return;
-      }
-
-      var reader = new FileReader();
-      reader.onload = function(ev) {
-        var base64Img = ev.target.result;
-        
-        // 强行定义为我们自己认识的图片类型
-        var msgObj = {
-          type: 'my_photo', 
-          src: base64Img, 
-          self: true,
-          time: new Date().toLocaleTimeString('zh-CN', { hour12: false }).substring(0, 5)
-        };
-        
-        // 存进数据
-        if (window.data && window.data.messages) {
-          window.data.messages.push(msgObj);
-          if (typeof saveData === 'function') saveData();
-        }
-
-        // 我们自己手动把它画出来
-        if (typeof renderMessages === 'function') {
-          renderMessages();
-        }
-
-        // 触发对方回复
-        if (typeof getRandomDelay === 'function' && typeof enqueueReply === 'function') {
-          var delay = getRandomDelay();
-          var card = (window.data.cards && window.data.cards.length > 0) 
-            ? window.data.cards[Math.floor(Math.random() * window.data.cards.length)] 
-            : '收到你的照片啦~';
-          enqueueReply(card, delay);
-        }
-      };
-      reader.readAsDataURL(file);
-      fileInput.value = '';
-    });
-
-    clearInterval(timer);
-  }, 800);
-
-  // ==========================================
-  // 【终极强制接管】重写原版的渲染逻辑
-  // 拦截原版的 renderMessages，让它能认出我们的图片
-  // ==========================================
-  var originalRender = window.renderMessages;
-  if (originalRender) {
-    window.renderMessages = function() {
-      // 先让原版渲染一次
-      originalRender.apply(this, arguments);
-
-      // 然后我们去消息列表里找，把画错的文字替换成图片
-      var msgList = document.getElementById('msgList');
-      if (!msgList || !window.data || !window.data.messages) return;
-      
-      var items = msgList.querySelectorAll('.msg-item');
-      items.forEach(function(el, idx) {
-        var msg = window.data.messages[idx];
-        if (msg && msg.type === 'my_photo') {
-          var bubble = el.querySelector('.bubble');
-          if (bubble) {
-            // 清空气泡里乱七八糟的文字
-            bubble.innerHTML = '';
-            bubble.style.background = window.data.myBubbleColor || '#D9A0A0';
-            
-            // 塞进图片
-            var img = document.createElement('img');
-            img.className = 'my-photo-img';
-            img.src = msg.src;
-            bubble.appendChild(img);
-          }
-        }
-      });
-    };
-  }
 })();
-})();// ====== 修复加号菜单太长滑动问题 ======
+
+// ==========================================
+// 强行接管渲染，解决相册乱码问题
+// ==========================================
 (function() {
-  var style = document.createElement('style');
-  style.innerHTML = `
-    /* 限制最高高度为 160px，大概显示3个，其他的滑动 */
-    #plusMenu {
-      max-height: 160px !important; 
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch !important;
+  var checkTimer = setInterval(function() {
+    if (typeof window.renderMessages === 'function' && !window.renderMessages.isHijacked) {
+      var originalRender = window.renderMessages;
+      window.renderMessages = function() {
+        originalRender.apply(this, arguments);
+        var msgList = document.getElementById('msgList');
+        if (!msgList || !window.data || !window.data.messages) return;
+        var items = msgList.querySelectorAll('.msg-item');
+        items.forEach(function(el, idx) {
+          var msg = window.data.messages[idx];
+          if (msg && msg.type === 'my_photo') {
+            var bubble = el.querySelector('.bubble');
+            if (bubble) {
+              bubble.innerHTML = '';
+              bubble.style.background = window.data.myBubbleColor || '#D9A0A0';
+              var img = document.createElement('img');
+              img.className = 'my-photo-img';
+              img.src = msg.src;
+              bubble.appendChild(img);
+            }
+          }
+        });
+      };
+      window.renderMessages.isHijacked = true;
+      clearInterval(checkTimer);
     }
-    /* 隐藏滚动条 */
-    #plusMenu::-webkit-scrollbar {
-      width: 0px !important;
-      display: none !important;
-    }
-  `;
-  document.head.appendChild(style);
+  }, 500);
 })();
