@@ -844,8 +844,21 @@ window.addEventListener('load', function() {
       }
     }
   }, 5000);
-})();// ====== 相册上传功能（修复版） ======
+})();// ====== 🍽 相册上传功能（最终版） ======
 (function() {
+  // 1. 注入样式，确保图片完美显示，不会被拉伸或变模糊
+  var style = document.createElement('style');
+  style.innerHTML = `
+    .msg-item .bubble img.emoji-img {
+      max-width: 160px !important;
+      max-height: 200px !important;
+      border-radius: 8px !important;
+      object-fit: cover !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // 2. 将“相册”按钮插入左下角加号菜单
   var timer = setInterval(function() {
     var plusMenu = document.getElementById('plusMenu');
     if (!plusMenu) return;
@@ -854,26 +867,32 @@ window.addEventListener('load', function() {
       return;
     }
 
+    // 创建相册按钮
     var item = document.createElement('button');
     item.className = 'custom-plus-item menu-item';
     item.id = 'custom-photo-item';
     item.innerHTML = '🍽 相册';
-    plusMenu.insertBefore(item, plusMenu.firstChild);
+    plusMenu.insertBefore(item, plusMenu.firstChild); // 放在最上面
 
+    // 创建隐藏的选图输入框
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
     fileInput.style.display = 'none';
     document.body.appendChild(fileInput);
 
+    // 点击相册按钮，呼出系统相册
     item.addEventListener('click', function() {
-      plusMenu.classList.remove('active');
-      fileInput.click();
+      plusMenu.classList.remove('active'); // 关闭菜单
+      fileInput.click(); // 打开相册
     });
 
+    // 处理选中的图片
     fileInput.addEventListener('change', function(e) {
       var file = e.target.files[0];
       if (!file) return;
+      
+      // 限制图片大小 5MB
       if (file.size > 5 * 1024 * 1024) {
         alert('图片太大了，请选择 5MB 以下的图片哦~');
         return;
@@ -882,73 +901,16 @@ window.addEventListener('load', function() {
       var reader = new FileReader();
       reader.onload = function(ev) {
         var base64Img = ev.target.result;
-        var now = new Date();
-        var timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
-
-        var msgObj = {
-          type: 'photo', 
-          src: base64Img, 
-          time: timeStr, 
-          self: true 
-        };
         
-        if (window.data && window.data.messages) {
-          window.data.messages.push(msgObj);
-          if (typeof saveData === 'function') saveData();
-        }
-
-        var msgList = document.getElementById('msgList');
-        if (msgList) {
-          var div = document.createElement('div');
-          div.className = 'msg-item self';
-          
-          var avatar = document.createElement('div');
-          avatar.className = 'msg-avatar';
-          if (window.data.myAvatar) {
-            avatar.innerHTML = '< img src="' + window.data.myAvatar + '">';
-          } else {
-            avatar.textContent = '我';
-          }
-
-          var content = document.createElement('div');
-          content.className = 'msg-content';
-          
-          var bubble = document.createElement('div');
-          bubble.className = 'bubble';
-          
-          // 【关键修复】用正确的 img 标签
-          var img = document.createElement('img');
-          img.src = base64Img;
-          img.style.maxWidth = '160px';
-          img.style.borderRadius = '8px';
-          img.style.display = 'block';
-          
-          bubble.appendChild(img);
-          bubble.style.background = window.data.myBubbleColor || '#D9A0A0';
-          
-          var time = document.createElement('div');
-          time.className = 'msg-time';
-          time.textContent = timeStr;
-          
-          content.appendChild(bubble);
-          content.appendChild(time);
-          div.appendChild(avatar);
-          div.appendChild(content);
-          
-          msgList.appendChild(div);
-          msgList.scrollTop = msgList.scrollHeight;
-        }
-
-        if (typeof getRandomDelay === 'function' && typeof enqueueReply === 'function') {
-          var delay = getRandomDelay();
-          var card = (window.data.cards && window.data.cards.length > 0) 
-            ? window.data.cards[Math.floor(Math.random() * window.data.cards.length)] 
-            : '收到你的照片啦~';
-          enqueueReply(card, delay);
+        // 【核心】调用你原版 HTML 里的发图函数，原版会完美处理存储和渲染！
+        if (typeof sendSticker === 'function') {
+          sendSticker(base64Img);
+        } else {
+          alert('发图失败，原版函数丢失');
         }
       };
       reader.readAsDataURL(file);
-      fileInput.value = '';
+      fileInput.value = ''; // 清空，方便下次选同一张图
     });
 
     clearInterval(timer);
