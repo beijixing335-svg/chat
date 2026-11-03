@@ -844,4 +844,119 @@ window.addEventListener('load', function() {
       }
     }
   }, 5000);
+})();// ====== 相册上传功能 ======
+(function() {
+  var timer = setInterval(function() {
+    var plusMenu = document.getElementById('plusMenu');
+    if (!plusMenu) return;
+    if (document.getElementById('custom-photo-item')) {
+      clearInterval(timer);
+      return;
+    }
+
+    // 1. 在 + 号菜单里添加「相册」按钮
+    var item = document.createElement('button');
+    item.className = 'custom-plus-item menu-item';
+    item.id = 'custom-photo-item';
+    item.innerHTML = '🍽 相册';
+    plusMenu.insertBefore(item, plusMenu.firstChild); // 插在最前面
+
+    // 2. 创建一个隐藏的文件选择器
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+
+    // 3. 点击相册按钮，触发选图
+    item.addEventListener('click', function() {
+      plusMenu.classList.remove('active'); // 关闭菜单
+      fileInput.click(); // 打开手机相册
+    });
+
+    // 4. 选中图片后的处理
+    fileInput.addEventListener('change', function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+
+      // 限制一下大小，防止手机卡死（这里限制 5MB）
+      if (file.size > 5 * 1024 * 1024) {
+        alert('图片太大了，请选择 5MB 以下的图片哦~');
+        return;
+      }
+
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        var base64Img = ev.target.result;
+        
+        // 当前时间
+        var now = new Date();
+        var timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+        // 把图片存进原版的消息结构里
+        var msgObj = {
+          type: 'photo', 
+          src: base64Img, 
+          time: timeStr, 
+          self: true 
+        };
+        
+        // 存入数据并保存
+        if (window.data && window.data.messages) {
+          window.data.messages.push(msgObj);
+          if (typeof saveData === 'function') saveData();
+        }
+
+        // ===== 关键：因为原版不认识 type: 'photo'，我们要自己把它画出来 =====
+        var msgList = document.getElementById('msgList');
+        if (msgList) {
+          var div = document.createElement('div');
+          div.className = 'msg-item self';
+          
+          var avatar = document.createElement('div');
+          avatar.className = 'msg-avatar';
+          if (window.data.myAvatar) {
+            avatar.innerHTML = '< img src="' + window.data.myAvatar + '">';
+          } else {
+            avatar.textContent = '我';
+          }
+
+          var content = document.createElement('div');
+          content.className = 'msg-content';
+          
+          var bubble = document.createElement('div');
+          bubble.className = 'bubble';
+          bubble.innerHTML = '< img src="' + base64Img + '" style="max-width: 160px; border-radius: 8px; display: block;">';
+          
+          // 套用你设置的气泡颜色
+          bubble.style.background = window.data.myBubbleColor || '#D9A0A0';
+          
+          var time = document.createElement('div');
+          time.className = 'msg-time';
+          time.textContent = timeStr;
+          
+          content.appendChild(bubble);
+          content.appendChild(time);
+          div.appendChild(avatar);
+          div.appendChild(content);
+          
+          msgList.appendChild(div);
+          msgList.scrollTop = msgList.scrollHeight; // 滚到底部
+        }
+
+        // 发送完后触发对方的回复逻辑
+        if (typeof getRandomDelay === 'function' && typeof enqueueReply === 'function') {
+          var delay = getRandomDelay();
+          var card = (window.data.cards && window.data.cards.length > 0) 
+            ? window.data.cards[Math.floor(Math.random() * window.data.cards.length)] 
+            : '收到你的照片啦~';
+          enqueueReply(card, delay);
+        }
+      };
+      reader.readAsDataURL(file);
+      fileInput.value = ''; // 清空，方便下次选同一张图
+    });
+
+    clearInterval(timer);
+  }, 800);
 })();
